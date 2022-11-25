@@ -1,11 +1,5 @@
-import { JsxDemo } from '~/demos/jsx'
-
 function App() {
-  return (
-    <div>
-      <JsxDemo />
-    </div>
-  )
+  return <div>App</div>
 }
 
 export default App

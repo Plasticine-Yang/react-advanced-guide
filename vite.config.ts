@@ -5,7 +5,11 @@ import { alias } from './build'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: 'classic',
+    }),
+  ],
   resolve: {
     alias,
   },

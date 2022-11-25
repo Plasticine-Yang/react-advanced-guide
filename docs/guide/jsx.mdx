@@ -1,5 +1,411 @@
-# JSX
+import { DemoBlock } from '@island/demo-block'
 
-import { JsxDemo } from '~/demos/jsx'
+# 认识 JSX
 
-<JsxDemo />
+## 提出问题
+
+- 常用的元素会被 React 处理成什么？
+- JSX 的编译过程是怎样的？
+
+## 1. 常用的元素会被 React 处理成什么？
+
+比如下面这个例子中，包含了组件类型的元素、普通 DOM 元素、纯文本元素
+
+```tsx
+import React, { useState } from 'react'
+
+const toLearn = ['react', 'vue', 'vite', 'node']
+
+interface SimpleComponentProps {
+  message?: string
+}
+const SimpleComponent = ({
+  message = 'A Simple Component.',
+}: SimpleComponentProps) => <div>{message}</div>
+
+const JSXDemo1 = () => {
+  const [status, setStatus] = useState(false)
+
+  const renderByFunc = () => <div>Rendered by function.</div>
+  const el = (
+    <>
+      {/* element 元素类型 */}
+      <div>Hello World</div>
+      {/* fragment 类型 */}
+      <React.Fragment>
+        <div>🚀🚀🚀</div>
+      </React.Fragment>
+      {/* text 文本类型 */}
+      This is a text element.
+      {/* 数组节点类型 */}
+      {toLearn.map((item) => (
+        <div key={item}>[Array Element] -- let us learn {item} </div>
+      ))}
+      {/* 组件类型 */}
+      <SimpleComponent />
+      {/* 三目运算 */}
+      {status ? (
+        <SimpleComponent message="status: true" />
+      ) : (
+        <SimpleComponent message="status: false" />
+      )}
+      {/* 函数渲染 */}
+      {renderByFunc()}
+      <button onClick={() => setStatus(!status)}>toggle status</button>
+    </>
+  )
+
+  console.log('经过 React.createElement 处理后的 el:', el)
+
+  return el
+}
+
+export { JSXDemo1 }
+```
+
+import { JSXDemo1 } from '~/demos/jsx/demo1'
+
+<DemoBlock>
+  <JSXDemo1 />
+</DemoBlock>
+
+### 1.1. 经过 babel 处理后的样子
+
+```js
+React.createElement(
+  'div',
+  null,
+  React.createElement(TextComponent, null),
+  React.createElement('div', null, 'hello,world'),
+  'let us learn React!',
+)
+```
+
+:::info
+
+这也正是为什么在使用老版本 React 时，编写 jsx 文件时总是要写上 `import React from 'react'`
+
+因为经过 babel 编译后，会有 `React.createElement` 这样的调用，只有引入了 React 才能正常运行
+
+:::
+
+### 1.2. 经过 React.createElement 处理后的样子
+
+![经过createElement处理后的元素](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E7%BB%8F%E8%BF%87createElement%E5%A4%84%E7%90%86%E5%90%8E%E7%9A%84%E5%85%83%E7%B4%A0.png)
+
+:::tip
+
+可以打开控制台查看输出
+
+:::
+
+createElement 的处理规则：
+
+![createElement 的处理规则](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/createElement%E5%A4%84%E7%90%86%E8%A7%84%E5%88%99.png)
+
+### 1.3. 经过 React 底层调和处理后的样子
+
+:::info
+
+React element 对象的每一个子节点都会形成一个与之对应的 fiber 对象，然后通过 sibling、return、child 将每一个 fiber 对象联系起来
+
+:::
+
+#### 1.3.1. Fiber Tag
+
+不同种类的 React Element 对应不同 Tag 的 Fiber 对象，对应关系如下：
+
+```ts
+export const FunctionComponent = 0 // 函数组件
+export const ClassComponent = 1 // 类组件
+export const IndeterminateComponent = 2 // 初始化的时候不知道是函数组件还是类组件
+export const HostRoot = 3 // Root Fiber 可以理解为根元素 ， 通过reactDom.render()产生的根元素
+export const HostPortal = 4 // 对应  ReactDOM.createPortal 产生的 Portal
+export const HostComponent = 5 // dom 元素 比如 <div>
+export const HostText = 6 // 文本节点
+export const Fragment = 7 // 对应 <React.Fragment>
+export const Mode = 8 // 对应 <React.StrictMode>
+export const ContextConsumer = 9 // 对应 <Context.Consumer>
+export const ContextProvider = 10 // 对应 <Context.Provider>
+export const ForwardRef = 11 // 对应 React.ForwardRef
+export const Profiler = 12 // 对应 <Profiler/ >
+export const SuspenseComponent = 13 // 对应 <Suspense>
+export const MemoComponent = 14 // 对应 React.memo 返回的组件
+```
+
+下面的 jsx 代码会被转成如下 fiber 结构：
+
+```jsx
+const reactElement = (
+  <div style={{ marginTop: '100px' }} className="container">
+    {/* element 元素类型 */}
+    <div>hello,world</div>
+    {/* fragment 类型 */}
+    <React.Fragment>
+      <div> 👽👽 </div>
+    </React.Fragment>
+    {/* text 文本类型 */}
+    my name is alien
+    {/* 数组节点类型 */}
+    {toLearn.map((item) => (
+      <div key={item}>let us learn {item} </div>
+    ))}
+    {/* 组件类型 */}
+    <TextComponent />
+    {/* 三元运算 */}
+    {this.status ? <TextComponent /> : <div>三元运算</div>}
+    {/* 函数执行 */}
+    {this.renderFoot()}
+    <button onClick={() => console.log(this.render())}>
+      打印render后的内容
+    </button>
+  </div>
+)
+```
+
+![元素被转换后的 fiber 结构](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%85%83%E7%B4%A0%E8%A2%AB%E8%BD%AC%E6%8D%A2%E5%90%8E%E7%9A%84fiber%E7%BB%93%E6%9E%84.png)
+
+总的来说，fiber 的结构如下：
+
+- child： 一个由父级 fiber 指向子级 fiber 的指针。
+- return：一个子级 fiber 指向父级 fiber 的指针。
+- sibling: 一个 fiber 指向下一个兄弟 fiber 的指针。
+
+## 2. 动手实践 -- 提高组件可控性
+
+现在`JSXDemo1`组件的`props.children`中的结构比较复杂，既有对象类型(如`ReactElement`)，又有数组类型，还有纯字符串类型
+
+为了提高可控性，我们需要做一些改造，包含以下步骤：
+
+1. 将 children 扁平化，把里面的数组元素拍平
+2. 去除纯字符串子元素
+3. 往 children 的末尾插入新元素
+4. 克隆新的元素节点并渲染
+
+:::tip
+
+第三第四步纯粹是为了加深读者对 jsx 编译后的 React.element 结构的理解，同时也是为了熟悉 React API 的使用
+
+:::
+
+```tsx{44-69}
+import React, { useState } from 'react'
+
+const toLearn = ['react', 'vue', 'vite', 'node']
+
+interface SimpleComponentProps {
+  message?: string
+}
+const SimpleComponent = ({
+  message = 'A Simple Component.',
+}: SimpleComponentProps) => <div>{message}</div>
+
+const JSXDemo2 = () => {
+  const [status, setStatus] = useState(false)
+
+  const renderByFunc = () => <div>Rendered by function.</div>
+  const el = (
+    <>
+      {/* element 元素类型 */}
+      <div>Hello World</div>
+      {/* fragment 类型 */}
+      <React.Fragment>
+        <div>🚀🚀🚀</div>
+      </React.Fragment>
+      {/* text 文本类型 */}
+      This is a text element.
+      {/* 数组节点类型 */}
+      {toLearn.map((item) => (
+        <div key={item}>[Array Element] -- let us learn {item} </div>
+      ))}
+      {/* 组件类型 */}
+      <SimpleComponent />
+      {/* 三目运算 */}
+      {status ? (
+        <SimpleComponent message="status: true" />
+      ) : (
+        <SimpleComponent message="status: false" />
+      )}
+      {/* 函数渲染 */}
+      {renderByFunc()}
+      <button onClick={() => setStatus(!status)}>toggle status</button>
+    </>
+  )
+
+  // 1. children 数组扁平化 -- 将内部的 数组节点 拍平
+  const { children } = el.props
+  const flatChildren = React.Children.toArray(children)
+  console.log('扁平化后的 children:', flatChildren)
+
+  // 2. 去除纯字符串子元素
+  const newChildren: any[] = []
+  React.Children.forEach(flatChildren, (child) => {
+    if (React.isValidElement(child)) {
+      newChildren.push(child)
+    }
+  })
+
+  // 3. 往 children 的末尾插入新元素
+  const lastChild = React.createElement(
+    'div',
+    { className: 'last' },
+    'last element',
+  )
+  newChildren.push(lastChild)
+
+  // 4. 克隆新的元素节点并渲染
+  const newEl = React.cloneElement(el, {}, ...newChildren)
+  console.log('增强可控性后的 el:', newEl)
+
+  return newEl
+}
+
+export { JSXDemo2 }
+```
+
+import { JSXDemo2 } from '~/demos/jsx/demo2.tsx'
+
+<DemoBlock>
+  <JSXDemo2 />
+</DemoBlock>
+
+### 2.1. 将 children 扁平化，把里面的数组元素拍平
+
+使用`React.Children.toArray()`将 children 转成扁平化、规范化的数组，在我们需要遍历 children 的时候很有用
+
+```tsx
+// 1. children 数组扁平化 -- 将内部的 数组节点 拍平
+const { children } = el.props
+const flatChildren = React.Children.toArray(children)
+console.log('扁平化后的 children:', flatChildren)
+```
+
+### 2.2. 去除纯字符串子元素
+
+使用`React.Children.forEach`实际上就等价于:
+
+1. React.Children.toArray
+2. Array.prototype.forEach
+
+因此我们直接使用`React.Children.forEach(children)`也是可以的，这里只是为了让读者熟悉 React API 才将其分开使用的
+
+:::tip
+
+flatChildren 已经是一个扁平化、规范化的数组了，因此直接用`flatChildren.forEach`也可以
+
+:::
+
+```tsx
+// 2. 去除纯字符串子元素
+const newChildren: any[] = []
+React.Children.forEach(flatChildren, (child) => {
+  if (React.isValidElement(child)) {
+    newChildren.push(child)
+  }
+})
+```
+
+### 2.3. 往 children 的末尾插入新元素
+
+```tsx
+// 3. 往 children 的末尾插入新元素
+const lastChild = React.createElement(
+  'div',
+  { className: 'last' },
+  'last element',
+)
+newChildren.push(lastChild)
+```
+
+与之等价的写法:
+
+```tsx
+newChildren.push(<div className="last">last element</div>)
+```
+
+### 2.4. 克隆新的元素节点并渲染
+
+```tsx
+// 4. 克隆新的元素节点并渲染
+const newEl = React.cloneElement(el, {}, ...newChildren)
+console.log('增强可控性后的 el:', newEl)
+
+return newEl
+```
+
+:::tip
+
+`React.cloneElement` 的作用是将传入的新 props 与被克隆元素的 props 浅层合并后返回
+
+在这里则是克隆原来的 el 元素，并使用新的 newChildren 作为其 `props.children`
+
+:::
+
+:::info{title=提问}
+
+React.createElement 和 React.cloneElement 的区别是什么？
+
+前者用于创建元素，后者用于对已有元素进行修改并返回一个新的 React.element 对象
+
+:::
+
+## 3. Babel 是如何解析 JSX 的？
+
+使用 Babel 编译 jsx 时，主要使用的是 `@babel/preset-react` 这个 preset，其中起主要作用的是该 preset 内部的两个插件:
+
+- `@babel/plugin-syntax-jsx`: 让 Babel 解析 jsx 语法
+- `@babel/plugin-transform-react-jsx`: 将 jsx 元素转换成 React API，如 `React.createElement`
+
+而关于 React API 的转换则分为两种模式，为了方便观察结果，我们编写一段简单的 ts 代码，调用 `@babel/core` 的 `transformSync` 查看一下编译结果
+
+```shell
+pnpm i @bebel/core @babel/preset-react @types/babel__core -D
+```
+
+```ts
+import { transformSync } from '@babel/core'
+
+const res = transformSync('<div>jsx</div>', {
+  presets: ['@babel/preset-react'],
+})!
+
+console.log(res.code)
+```
+
+刚刚说过了，一共有两种转换方式：
+
+- React Classic Runtime
+  根据官方文档的说明，默认就是以 `Classic Runtime` 的方式转换 jsx 的
+
+  ![@babel/preset-react默认配置](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/babel-preset-react%E9%BB%98%E8%AE%A4%E9%85%8D%E7%BD%AE.png)
+
+  这种方式编译出来的结果如下:
+
+  ```text
+  /*#__PURE__*/React.createElement("div", null, "jsx");
+  ```
+
+  也就是 `React.createElement` 的方式，因此我们的源代码中需要显式引入 React
+
+- React Automatic Runtime
+
+  将代码改写如下:
+
+  ```ts
+  import { transformSync } from '@babel/core'
+
+  const res = transformSync('<div>jsx</div>', {
+    presets: [['@babel/preset-react', { runtime: 'automatic' }]],
+  })!
+
+  console.log(res.code)
+  ```
+
+  编译的结果如下:
+
+  ```text
+  import { jsx as _jsx } from "react/jsx-runtime";
+  /*#__PURE__*/_jsx("div", {
+    children: "jsx"
+  });
+  ```

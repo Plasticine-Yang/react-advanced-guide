@@ -6,7 +6,7 @@ const sidebar: DefaultTheme.Sidebar = {
       text: 'Guide',
       items: [
         {
-          text: '认识 jsx',
+          text: '认识 JSX',
           link: '/guide/jsx',
         },
       ],

@@ -14,13 +14,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "baseUrl": ".",
-    "paths": {
-      "~/*": ["src/*"],
-      "@island/*": ["docs/.island/components/*"]
-    }
-  },
-  "include": ["src", "docs/.island"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+    "jsx": "react-jsx"
+  }
 }
