@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/jsx
+      link: /guide/basics/jsx
     - theme: alt
       text: View on GitHub
       link: https://github.com/Plasticine-Yang/react-advanced-guide
