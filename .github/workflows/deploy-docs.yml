@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: 'docs/.island/dist'
-          key: ${{runner.OS}}-${{hashFiles('docs/.island/dist')}}
+          key: ${{runner.OS}}-${{hashFiles('docs')}}
 
       - name: Build Docs Site
         if: steps.cache-docs-dist.outputs.cache-hit != 'true'
