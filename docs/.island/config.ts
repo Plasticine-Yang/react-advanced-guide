@@ -5,7 +5,7 @@ import { alias } from '../../build'
 import { sidebar } from './sidebar'
 
 export default defineConfig({
-  base: '/react-advanced-guide/',
+  base: process.env.NODE_ENV === 'development' ? '/' : '/react-advanced-guide/',
 
   themeConfig: {
     siteTitle: 'React Advanced Guide',
