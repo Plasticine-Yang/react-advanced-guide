@@ -5,6 +5,8 @@ import { alias } from '../../build'
 import { sidebar } from './sidebar'
 
 export default defineConfig({
+  base: '/react-advanced-guide/',
+
   themeConfig: {
     siteTitle: 'React Advanced Guide',
 
@@ -26,7 +28,6 @@ export default defineConfig({
   },
 
   vite: {
-    base: "/react-advanced-guide/",
     resolve: {
       alias: alias as any,
     },
