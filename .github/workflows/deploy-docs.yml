@@ -27,7 +27,15 @@ jobs:
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
 
+      - name: Cache Docs dist
+        id: cache-docs-dist
+        uses: actions/cache@v3
+        with:
+          path: 'docs/.island/dist'
+          key: ${{runner.OS}}-${{hashFiles(docs/.island/dist)}}
+
       - name: Build Docs Site
+        if: steps.cache-docs-dist.outputs.cache-hit != 'true'
         run: pnpm docs:build
 
       - name: Deploy Docs Site
