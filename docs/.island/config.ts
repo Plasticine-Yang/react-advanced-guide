@@ -26,6 +26,7 @@ export default defineConfig({
   },
 
   vite: {
+    base: "/react-advanced-guide/",
     resolve: {
       alias: alias as any,
     },
