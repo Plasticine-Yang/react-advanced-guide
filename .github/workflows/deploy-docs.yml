@@ -1,0 +1,38 @@
+name: Deploy Docs Site
+on:
+  push:
+    branches:
+      - main
+  # allows deploy manually
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use pnpm package manager
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Build Docs Site
+        run: pnpm docs:build
+
+      - name: Deploy Docs Site
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/dist
+          publish_branch: main
