@@ -2,7 +2,7 @@ name: Deploy Docs Site
 on:
   push:
     branches:
-      - main
+      - gh-pages
   # allows deploy manually
   workflow_dispatch:
 
@@ -35,4 +35,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/dist
-          publish_branch: main
