@@ -1,3 +1,398 @@
+import { DemoBlock } from '@island/demo-block'
+
 # 起源 Component
 
 ## 提出问题
+
+- React 组件的本质是什么？
+- 类组件和函数组件的区别在哪？
+- 组件间通信方式有哪些？
+- 组件强化方式有哪些？
+
+## 1. React 组件的本质是什么？
+
+首先来看看 React 中组件是怎么使用的，包括两种：
+
+- 类组件
+- 函数组件
+
+```tsx
+/** @description 使用 React 组件 */
+
+import React, { useState } from 'react'
+
+/** @description 类组件 */
+interface ClassComponentState {
+  message: string
+}
+class ClassComponent extends React.Component {
+  // state
+  state: Readonly<ClassComponentState> = { message: "I'm ClassComponent." }
+
+  // methods
+  sayHello = () => this.setState({ message: "Hello, I'm ClassComponent." })
+
+  // render method
+  render(): React.ReactNode {
+    return <div onClick={() => this.sayHello()}>{this.state.message}</div>
+  }
+}
+
+/** @description 函数组件 */
+const FunctionComponent: React.FunctionComponent = () => {
+  const [message, setMessage] = useState("I'm FunctionComponent.")
+
+  const sayHello = () => {
+    setMessage("Hello, I'm FunctionComponent")
+  }
+
+  return <div onClick={() => sayHello()}>{message}</div>
+}
+
+export { ClassComponent, FunctionComponent }
+```
+
+import { ClassComponent, FunctionComponent } from '~/demos/component/demo1.tsx'
+
+`ClassComponent`
+
+<DemoBlock>
+  <ClassComponent />
+</DemoBlock>
+
+`FunctionComponent`
+
+<DemoBlock>
+  <FunctionComponent />
+</DemoBlock>
+
+不难发现，组件承载了渲染视图的 UI 和更新视图的 setState 、 useState 等方法
+
+:::tip{title='React 组件的本质'}
+
+UI + update + 常规的类和函数
+
+:::
+
+## 2. 类组件和函数组件的区别在哪？
+
+要回答这个问题，我们需要稍微探索一下 React 关于两种组件的处理源码会更加好理解
+
+### 2.1. 类组件
+
+类组件实例构造对应的源码：
+
+`packages/react-reconciler/src/ReactFiberClassComponent.old.js`
+
+```js
+function constructClassInstance(
+  workInProgress: Fiber, // 当前正在工作的 Fiber 对象
+  ctor: any, // 用户编写的类组件
+  props: any, // 传递给类组件的 props
+): any {
+  // ...
+  let instance = new ctor(props, context)
+  // ...
+}
+```
+
+可以看到，我们平时编写的类组件是通过 `new` 的方式被实例化出来的
+
+再看看编写类组件时，继承的 `React.Component` 是何方神圣
+
+`packages/react/src/ReactBaseClasses.js`
+
+```js
+// React.Component
+const emptyObject = {}
+function Component(props, context, updater) {
+  this.props = props
+  this.context = context
+  // If a component has string refs, we will assign a different object later.
+  this.refs = emptyObject
+  // We initialize the default updater but the real one gets injected by the
+  // renderer.
+  this.updater = updater || ReactNoopUpdateQueue
+}
+
+// 类组件 setState 方法
+Component.prototype.setState = function (partialState, callback) {
+  // ...
+  this.updater.enqueueSetState(this, partialState, callback, 'setState')
+}
+
+// 类组件 forceUpdate 方法
+Component.prototype.forceUpdate = function (callback) {
+  this.updater.enqueueForceUpdate(this, callback, 'forceUpdate')
+}
+```
+
+可以看到，`React.Component` 就是一个构造函数，里面完成了 `props`、`context` 的初始化赋值，并让 `refs` 指向一个空对象
+
+而平时用到的类组件 `this.setState` 本质上是在调用 `this.updater.enqueueSetState` 方法
+
+`this.forceUpdate` 本质上是在调用 `this.updater.enqueueForceUpdate` 方法
+
+### 2.2. 函数组件
+
+函数组件创建的对应源码：
+
+`packages/react-reconciler/src/ReactFiberHooks.old.js`
+
+```js
+export function renderWithHooks<Props, SecondArg>(
+  current: Fiber | null, // 当前函数组件对应的 Fiber 对象
+  workInProgress: Fiber, // 当前正在工作的 Fiber 对象
+  Component: (p: Props, arg: SecondArg) => any, // 用户编写的函数组件
+  props: Props, // 函数组件第一个参数 props
+  secondArg: SecondArg, // 函数组件剩余参数
+  nextRenderLanes: Lanes, // 下次渲染过期时间
+): any {
+  // ...
+  let children = Component(props, secondArg)
+  // ...
+}
+```
+
+函数组件的创建是直接调用我们编写的会返回 JSX 的函数
+
+:::warn
+
+这意味着我们不应该在函数组件的 prototype 上绑定任何属性和方法，因为是直接调用函数
+
+因此函数组件中的 this 绑定规则是默认绑定，所以不能通过 this 访问到 prototype 上的任何东西
+
+```tsx
+const FunctionComponent: React.FunctionComponent = () => {
+  const [message, setMessage] = useState("I'm FunctionComponent.")
+
+  const sayHello = () => {
+    setMessage("Hello, I'm FunctionComponent")
+  }
+
+  console.log('函数组件中的 this -- ', this)
+
+  return <div onClick={() => sayHello()}>{message}</div>
+}
+```
+
+![函数组件中的this](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%87%BD%E6%95%B0%E7%BB%84%E4%BB%B6%E4%B8%AD%E7%9A%84this.png)
+
+:::
+
+### 2.3. 区别
+
+总的来说，二者区别如下：
+
+- 类组件底层只实例化了一次，并且在实例中保存了组件的 state，组件更新时只需要调用组件实例的 render 方法和对应的生命周期即可
+- 函数组件每次更新都是一个全新的函数执行，不能保留组件的 state，并且无法像类组件那样拥有生命周期
+
+这样看来函数组件的局限性还是很大的，为此 React 自从 v16.8 版本开始，大力推行 `React Hooks`，让函数组件能够保存自己的状态，并通过 `useEffect` 副作用 hook 实现类似类组件的生命周期的特性
+
+## 3. 组件间通信方式有哪些？
+
+React 组件通信方式主流的有以下五种：
+
+- props 和 callback
+- ref
+- context
+- event bus
+- 状态管理库 -- 如 redux、mobx、zustand 等
+
+本章节主要讲解 `props 和 callback` 以及 `event bus` 的方式，其余的会有专门的章节讲解
+
+### 3.1. props 和 callback
+
+常用于父子组件之间通信：
+
+- 父 -> 子：父组件将数据通过 props 的方式传递给子组件
+- 子 -> 父：子组件调用 props 中的 callback prop 通知父组件
+
+`父 -> 子`
+
+```tsx
+/** @description 组件通信 -- props 和 callback */
+
+import { useState } from 'react'
+import s from './style.module.scss'
+
+/** @description 父组件 */
+const Father: React.FC = () => {
+  const [fatherMessage, setFatherMessage] = useState('father message')
+  const [childMessage, setChildMessage] = useState('child message')
+
+  return (
+    <div className={s.container}>
+      <section className={s.parent}>
+        <h3>这里是父组件</h3>
+        <p>子组件传递给父组件的 message: {fatherMessage}</p>
+        <input
+          type="text"
+          placeholder="我想传消息给子组件..."
+          onChange={(e) => setChildMessage(e.target.value)}
+        />
+      </section>
+
+      <Child
+        childMessage={childMessage}
+        onChangeFatherMessage={(fatherMessage) =>
+          setFatherMessage(fatherMessage)
+        }
+      />
+    </div>
+  )
+}
+
+/** @description 子组件 */
+interface ChildProps {
+  childMessage: string
+  onChangeFatherMessage: (fatherMessage: string) => void
+}
+const Child: React.FC<ChildProps> = ({
+  childMessage,
+  onChangeFatherMessage,
+}) => {
+  return (
+    <section className={s.child}>
+      <h3>这里是子组件</h3>
+      <p>父组件传递给子组件的 message: {childMessage}</p>
+      <input
+        type="text"
+        placeholder="我想传消息给父组件..."
+        onChange={(e) => onChangeFatherMessage(e.target.value)}
+      />
+    </section>
+  )
+}
+
+export { Father }
+```
+
+import { Father } from '~/demos/component/demo2'
+
+<DemoBlock>
+  <Father />
+</DemoBlock>
+
+### 3.2. event bus
+
+优点：
+
+- 能够跨层级通信，不管是父子组件、爷孙组件、兄弟组件等等情况都能够轻松使用 `event bus` 完成通信
+
+缺点：
+
+- 需要手动在副作用函数中绑定事件，并在组件销毁时解绑事件
+- 一定程度上违背了 React 单向数据流原则
+- 对于规模稍大的项目，使用这种方式会导致难以维护，因为组件间的数据流向关系比较混乱
+
+下面我们的 demo 仍然是 `props 和 callback` 中的那个，但是使用 `event bus` 进行改造
+
+这里我们会使用 [mitt](https://github.com/developit/mitt) 这个库，它十分轻量，并且 TypeScript 友好
+
+```tsx{9-14,20-29,36-44,47,54-66,72-80}
+/** @description 组件通信 -- event bus */
+
+import { useEffect, useState } from 'react'
+
+import mitt from 'mitt'
+
+import s from './style.module.scss'
+
+// emitter 支持的事件类型定义
+type EventType = {
+  changeFatherMessage: { fatherMessage: string }
+  changeChildMessage: { childMessage: string }
+}
+const emitter = mitt<EventType>()
+
+/** @description 父组件 */
+const Father: React.FC = () => {
+  const [fatherMessage, setFatherMessage] = useState('father message')
+
+  // 副作用 -- 绑定事件并在组件销毁时解绑
+  useEffect(() => {
+    emitter.on('changeFatherMessage', ({ fatherMessage }) => {
+      setFatherMessage(fatherMessage)
+    })
+
+    return () => {
+      emitter.off('changeFatherMessage')
+    }
+  }, [])
+
+  return (
+    <div className={s.container}>
+      <section className={s.parent}>
+        <h3>这里是父组件</h3>
+        <p>子组件传递给父组件的 message: {fatherMessage}</p>
+        <input
+          type="text"
+          placeholder="我想传消息给子组件..."
+          onChange={(e) =>
+            emitter.emit('changeChildMessage', {
+              childMessage: e.target.value,
+            })
+          }
+        />
+      </section>
+
+      <Child />
+    </div>
+  )
+}
+
+/** @description 子组件 */
+const Child: React.FC = () => {
+  const [childMessage, setChildMessage] = useState('father to child message')
+
+  // 副作用 -- 绑定事件并在组件销毁时解绑
+  useEffect(() => {
+    // 监听父组件通过 event bus 传递给子组件的消息
+    emitter.on('changeChildMessage', ({ childMessage }) =>
+      setChildMessage(childMessage),
+    )
+
+    return () => {
+      emitter.off('changeChildMessage')
+    }
+  }, [])
+
+  return (
+    <section className={s.child}>
+      <h3>这里是子组件</h3>
+      <p>父组件传递给子组件的 message: {childMessage}</p>
+      <input
+        type="text"
+        placeholder="我想传消息给父组件..."
+        onChange={(e) =>
+          emitter.emit('changeFatherMessage', {
+            fatherMessage: e.target.value,
+          })
+        }
+      />
+    </section>
+  )
+}
+
+export { Father }
+```
+
+import { Father as Father2 } from '~/demos/component/demo3'
+
+<DemoBlock>
+  <Father2 />
+</DemoBlock>
+
+## 4. 组件强化方式有哪些？
+
+组件强化指的是对组件的进行改造、强化和添加额外功能
+
+主要有以下三种方式：
+
+1. 类组件的继承
+   较为简单，就是利用 `js` 的类继承将父组件的特性保留，并对其进行修改
+2. 函数组件自定义 hooks
+   自定义 hooks 章节会详细介绍
+3. HOC 高阶组件
+   同样会在相关章节专门介绍
