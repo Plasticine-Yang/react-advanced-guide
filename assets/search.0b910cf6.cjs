@@ -28,6 +28,7 @@ require("react");
 require("react/jsx-runtime");
 const ssrEntry = require("../ssr-entry.js");
 require("react-dom/server");
+require("mitt");
 require("react-router");
 require("copy-to-clipboard");
 require("body-scroll-lock");
