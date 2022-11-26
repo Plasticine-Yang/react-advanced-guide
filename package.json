@@ -1,32 +1,15 @@
 {
-  "name": "react-advanced-guide",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@example/basics",
   "type": "module",
+  "version": "0.0.1",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "docs:dev": "env NODE_ENV=development island dev docs",
-    "docs:build": "env NODE_ENV=production island build docs",
-    "docs:preview": "island start docs"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "dependencies": {
-    "islandjs": "^0.7.11",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.20.2",
-    "@babel/preset-react": "^7.18.6",
-    "@types/babel__core": "^7.1.20",
-    "@types/node": "^18.11.9",
-    "@types/react": "^18.0.24",
-    "@types/react-dom": "^18.0.8",
-    "@vitejs/plugin-react": "^2.2.0",
-    "rollup": "^3.4.0",
-    "sass": "^1.56.1",
-    "typescript": "^4.6.4",
-    "vite": "^3.2.3"
+    "astro": "^1.6.11"
   }
 }
