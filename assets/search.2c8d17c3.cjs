@@ -1055,7 +1055,7 @@ class PageSearcher {
     __privateSet(this, _langRoutePrefix, langRoutePrefix);
   }
   async init(options = {}) {
-    const pages = await ssrEntry.getAllPages((route) => route.path.startsWith(__privateGet(this, _langRoutePrefix)));
+    const pages = await ssrEntry.getAllPages((route) => route.path.startsWith(ssrEntry.withBase(__privateGet(this, _langRoutePrefix))));
     const pagesForSearch = pages.filter((page) => {
       var _a;
       return !WHITE_PAGE_TYPES.includes(((_a = page.frontmatter) == null ? void 0 : _a.pageType) || "");
