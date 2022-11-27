@@ -1,0 +1,51 @@
+<script>
+  const main = () => {
+    loadDefaultTheme()
+
+    // bind event when window loaded
+    window.addEventListener('load', () => {
+      bindEvent()
+    })
+  }
+
+  /** @description 根据 localStorage 或 prefers-color-schema 设置默认主题 */
+  const loadDefaultTheme = () => {
+    // set default theme
+    const theme = localStorage.getItem('theme')
+    if (
+      theme === 'dark' ||
+      (theme === null &&
+        window.matchMedia('prefers-color-schema: dark').matches)
+    ) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  /** @description 事件绑定 */
+  const bindEvent = () => {
+    attachEvent('[data-rag-toggle-color-scheme]', 'click', (el) => {
+      const docElClassList = document.documentElement.classList
+
+      docElClassList.toggle('dark')
+      localStorage.setItem(
+        'theme',
+        docElClassList.contains('dark') ? 'dark' : 'light',
+      )
+    })
+  }
+
+  /** @description 批量注册事件监听器 */
+  const attachEvent = (
+    selectors: string,
+    eventType: keyof HTMLElementEventMap,
+    listener: (el: Element) => void,
+  ) => {
+    document.querySelectorAll(selectors).forEach((el) => {
+      el.addEventListener(eventType, () => listener(el))
+    })
+  }
+
+  main()
+</script>

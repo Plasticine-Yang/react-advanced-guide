@@ -1,6 +1,8 @@
 import { defineConfig } from 'unocss'
-import { presetUno, presetAttributify } from 'unocss'
+
+import { shortcuts, theme } from './config/unocss'
 
 export default defineConfig({
-  presets: [presetUno(), presetAttributify()],
+  shortcuts,
+  theme,
 })

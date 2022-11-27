@@ -1,0 +1,39 @@
+---
+import config from '~/config'
+
+import ToggleTheme from '~/components/core/ToggleTheme.astro'
+import Logo from '~/components/atoms/Logo.astro'
+import LinkLogo from '~/components/atoms/LinkLogo.astro'
+
+const { github } = config
+---
+
+<header
+  class="sticky top-0 bg-background-light/90 dark:bg-background-dark backdrop-blur-sm text-font-light dark:text-font-dark transition-500"
+>
+  <!-- container -->
+  <section
+    class="px-3 py-6 w-full mx-auto max-w-95/100 md:flex md:justify-between"
+  >
+    <!-- logo -->
+    <div class="flex justify-between">
+      <a class="flex items-center" href="#">
+        <Logo />
+      </a>
+
+      <!-- 屏幕宽度小于 md 时的 nav -->
+      <nav class="flex items-center md:hidden">
+        <ToggleTheme />
+      </nav>
+    </div>
+
+    <!-- nav -->
+    <nav class="hidden md:flex md:items-center gap-xl">
+      <!-- toggle theme -->
+      <ToggleTheme />
+
+      <!-- github -->
+      {github && <LinkLogo link={github} iconName="mdi:github" />}
+    </nav>
+  </section>
+</header>

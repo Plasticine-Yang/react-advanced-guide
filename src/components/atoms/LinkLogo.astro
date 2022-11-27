@@ -1,0 +1,14 @@
+---
+import { Icon } from 'astro-icon'
+
+export interface Props {
+  link: string
+  iconName: string
+}
+
+const { link, iconName } = Astro.props
+---
+
+<a href={link}>
+  <Icon name={iconName} class="w-6 h-6 md:w-8 md:h-8" />
+</a>
