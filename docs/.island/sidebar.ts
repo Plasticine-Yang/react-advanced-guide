@@ -15,6 +15,10 @@ const generateBasics = () => {
         text: '起源 Component',
         link: generateLink('component'),
       },
+      {
+        text: '玄学 state',
+        link: generateLink('state'),
+      },
     ],
   }
 

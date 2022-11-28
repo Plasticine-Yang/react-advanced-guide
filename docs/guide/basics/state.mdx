@@ -1,0 +1,602 @@
+import { DemoBlock } from '@island/demo-block'
+
+import { SetStateDemo1 } from '~/demos/state/demo1.tsx'
+import { SetStateDemo2 } from '~/demos/state/demo1.tsx'
+import { BatchUpdateDemo1 } from '~/demos/state/demo2.tsx'
+import { BatchUpdateDemo2 } from '~/demos/state/demo3.tsx'
+import { BatchUpdateDemo3 } from '~/demos/state/demo4.tsx'
+import { BatchUpdateDemo4 } from '~/demos/state/demo5.tsx'
+import { UseStateDemo1 } from '~/demos/state/demo6.tsx'
+import { UseStateDemo2 } from '~/demos/state/demo6.tsx'
+import { UseStateDemo3 } from '~/demos/state/demo6.tsx'
+import { UseEffectDemo1 } from '~/demos/state/demo7.tsx'
+
+# 玄学 state
+
+## 1. 类组件中的 state
+
+### 1.1. setState 的用法
+
+#### 1.1.1. 对象形式 setState
+
+```tsx{16-20}
+/** @description 对象形式 setState */
+interface SetStateDemo1State {
+  counter: number
+}
+class SetStateDemo1 extends React.Component {
+  state: Readonly<SetStateDemo1State> = {
+    counter: 0,
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        <p>counter: {this.state.counter}</p>
+        <button
+          onClick={() =>
+            this.setState({ counter: this.state.counter + 1 }, () => {
+              console.log(
+                `对象形式 setState 之后的 counter: ${this.state.counter}`,
+              )
+            })
+          }
+        >
+          对象形式 setState
+        </button>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <SetStateDemo1 />
+</DemoBlock>
+
+#### 1.1.2. 函数形式 setState
+
+```tsx{16-23}
+/** @description 函数形式 setState */
+interface SetStateDemo2State {
+  counter: number
+}
+class SetStateDemo2 extends React.Component<{}, SetStateDemo2State> {
+  state = {
+    counter: 0,
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        <p>counter: {this.state.counter}</p>
+        <button
+          onClick={() =>
+            this.setState(
+              (state, props) => ({ counter: state.counter + 1 }),
+              () => {
+                console.log(
+                  `函数形式 setState 之后的 counter: ${this.state.counter}`,
+                )
+              },
+            )
+          }
+        >
+          函数形式 setState
+        </button>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <SetStateDemo2 />
+</DemoBlock>
+
+### 1.2. setState 底层做了什么？
+
+1. 产生当前更新的优先级 -- 老版本中使用 `expirationTime` 新版本使用 `lane`
+2. 从 `fiber root` 开始调和:
+   2.1. 也就是对比新老虚拟 DOM，找出发生变化的部分
+   2.2. 再对比 `expirationTime` 找到发生更新的组件
+   2.3. 合并 state，触发 render 函数，得到新的 UI 视图，完成 render 阶段
+3. commit 阶段，将虚拟 DOM 更新成真实 DOM，更新后再执行 setState 的第二个回调参数
+
+![setState底层逻辑](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/setState%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91.png)
+
+### 1.3. 如何限制 state 更新视图
+
+1. `pureComponent` -- 只会对 state 和 props 进行 shallow 比较
+2. `shouldComponentUpdate` 生命周期 -- 需要更新则返回 true，否则返回 false
+
+### 1.4. 从源码理解 setState 原理
+
+上一节中讲到过，类组件的 setState 本质上是调用了 updater 对象上的 enqueueSetState 方法，从命名上看就知道 updater 对象专门负责用来更新组件的
+
+既然更新 state 会更新视图，那么如果在事件处理函数中多次执行 setState 操作的话是否意味着每个 setState 都会触发视图更新呢？还是说 React 会智能地将多次 setState 对状态的改变合并成最终状态，再批量更新呢？
+
+带着这个问题，我们来到源码当中探索一下
+
+想要弄明白 setState 的原理，就需要从以下两方面入手：
+
+1. enqueueSetState 做了什么？
+2. React 底层如何进行批量更新的？
+
+#### 1.4.1. enqueueSetState 做了什么？
+
+这里对源码进行简化，挑出核心部分：
+
+`packages/react-reconciler/src/ReactFiberClassComponent.old.js`
+
+```js
+const classComponentUpdater = {
+  enqueueSetState(..., callback) {
+    // 每次调用 setState 都会创建一个 update 对象维护更新所需信息
+    const update = createUpdate(eventTime, lane)
+
+    // 挂载 setState 的第二个回调参数到 update 对象上
+    if (callback !== undefined && callback !== null) {
+      update.callback = callback
+    }
+
+    // 将 fiber 以及对应的 update 对象加入到更新队列中
+    enqueueUpdate(fiber, update)
+
+    // 调度更新 -- 调和阶段
+    scheduleUpdateOnFiber(root, fiber, lane, eventTime)
+  },
+}
+```
+
+#### 1.4.2. React 底层如何进行批量更新的？
+
+React 的 batchUpdate 是什么时候加上去的呢？
+
+这和 React 的事件系统有关，React 底层有一套事件系统统一调度事件，而 batchUpdate 则是作为一种事件被事件系统调度执行的
+
+`packages/react-dom-bindings/src/events/DOMPluginEventSystem.js`
+
+```js
+export function dispatchEventForPluginEventSystem() {
+  // ...
+
+  batchedUpdates(() =>
+    dispatchEventsForPlugins(
+      domEventName,
+      eventSystemFlags,
+      nativeEvent,
+      ancestorInst,
+      targetContainer,
+    ),
+  )
+}
+```
+
+这里的 batchedUpdates 函数就是批量更新的重点
+
+`packages/react-dom-bindings/src/events/ReactDOMUpdateBatching.js`
+
+```js
+export function batchedUpdates(fn, a, b) {
+  // 开启批量更新
+  isInsideEventHandler = true
+
+  try {
+    // 这里执行事件处理函数，setState 就是在这里面被执行的
+    return batchedUpdatesImpl(fn, a, b)
+  } finally {
+    // try 中 return 不影响 finally 的执行
+
+    // 完成事件处理函数后关闭标志变量，开始批量更新
+    isInsideEventHandler = false
+  }
+}
+```
+
+#### 1.4.3. 同步事件处理函数正常执行流程
+
+通过一个例子来看看这个过程会更加好理解
+
+```tsx
+/** @description batchUpdate 的流程 -- 在事件处理函数中执行同步操作 */
+
+import React from 'react'
+
+interface BatchUpdateDemo1State {
+  counter: number
+}
+class BatchUpdateDemo1 extends React.Component<{}, BatchUpdateDemo1State> {
+  state: Readonly<BatchUpdateDemo1State> = { counter: 0 }
+
+  handleClick() {
+    this.setState({ counter: this.state.counter + 1 }, () => {
+      console.log(`callback 1 -- ${this.state.counter}`)
+    })
+    console.log(this.state.counter)
+
+    this.setState({ counter: this.state.counter + 1 }, () => {
+      console.log(`callback 2 -- ${this.state.counter}`)
+    })
+    console.log(this.state.counter)
+
+    this.setState({ counter: this.state.counter + 1 }, () => {
+      console.log(`callback 3 -- ${this.state.counter}`)
+    })
+    console.log(this.state.counter)
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        {this.state.counter}
+        <button onClick={() => this.handleClick()}>counter++</button>
+      </div>
+    )
+  }
+}
+
+export { BatchUpdateDemo1 }
+```
+
+<DemoBlock>
+  <BatchUpdateDemo1 />
+</DemoBlock>
+
+控制台输出如下：
+
+![BatchUpdateDemo1控制台输出](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/BatchUpdateDemo1%E6%8E%A7%E5%88%B6%E5%8F%B0%E8%BE%93%E5%87%BA.png)
+
+为什么结果是这样的呢？我们结合刚刚看过的源码分析一下
+
+首先通过按钮点击触发事件处理函数`handleClick`，它会被 React 的事件系统托管，由事件系统统一调度
+
+也就是在 `batchedUpdates` 这个函数上下文中进行，那么我们结合刚才的精简版画一个这个函数上下文中的执行情况如下图所示：
+
+![事件处理函数在React底层的执行流程](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86%E5%87%BD%E6%95%B0%E5%9C%A8React%E5%BA%95%E5%B1%82%E7%9A%84%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B.png)
+
+相信现在你能理解为什么输出情况是上面那样了
+
+#### 1.4.4. 异步事件处理函数执行流程
+
+如果我们在 handleClick 中有异步操作会发生什么呢？
+
+```tsx
+/** @description batchUpdate 的流程 -- 在事件处理函数中执行异步操作 */
+
+import React from 'react'
+
+interface BatchUpdateDemo2State {
+  counter: number
+}
+class BatchUpdateDemo2 extends React.Component<{}, BatchUpdateDemo2State> {
+  state: Readonly<BatchUpdateDemo2State> = { counter: 0 }
+
+  handleClick() {
+    setTimeout(() => {
+      this.setState({ counter: this.state.counter + 1 }, () => {
+        console.log(`callback 1 -- ${this.state.counter}`)
+      })
+      console.log(this.state.counter)
+
+      this.setState({ counter: this.state.counter + 1 }, () => {
+        console.log(`callback 2 -- ${this.state.counter}`)
+      })
+      console.log(this.state.counter)
+
+      this.setState({ counter: this.state.counter + 1 }, () => {
+        console.log(`callback 3 -- ${this.state.counter}`)
+      })
+      console.log(this.state.counter)
+    })
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        {this.state.counter}
+        <button onClick={() => this.handleClick()}>counter++</button>
+      </div>
+    )
+  }
+}
+
+export { BatchUpdateDemo2 }
+```
+
+<DemoBlock>
+  <BatchUpdateDemo2 />
+</DemoBlock>
+
+异步任务并没有在事件系统的 `batchUpdates` 函数上下文中执行，因而里面的 setState 并不会被批量更新，而是一次一次地修改 state，然后更新视图
+
+:::tip
+
+这个现象只在 React 17 及之前存在，18 开始默认支持异步操作中进行批量更新
+
+> Before React 18, only updates inside React event handlers were batched. Starting with React 18, batching is enabled for all updates by default.
+
+> React 18 adds out-of-the-box performance improvements by doing more batching by default. Batching is when React groups multiple state updates into a single re-render for better performance. Before React 18, we only batched updates inside React event handlers. Updates inside of promises, setTimeout, native event handlers, or any other event were not batched in React by default
+
+:::
+
+### 1.5. unstable_batchedUpdates -- 让事件处理函数中异步操作里的 setState 批量更新
+
+如何让异步操作中的多次 setState 也批量更新呢？
+
+ReactDOM 中提供了一个 `unstable_batchedUpdates` API，能够允许我们手动开启 setState 批量更新
+
+```tsx{4,14,30}
+/** @description batchUpdate 的流程 -- 事件处理函数的异步操作中 setState 批量更新 */
+
+import React from 'react'
+import { unstable_batchedUpdates } from 'react-dom'
+
+interface BatchUpdateDemo3State {
+  counter: number
+}
+class BatchUpdateDemo3 extends React.Component<{}, BatchUpdateDemo3State> {
+  state: Readonly<BatchUpdateDemo3State> = { counter: 0 }
+
+  handleClick() {
+    setTimeout(() => {
+      unstable_batchedUpdates(() => {
+        this.setState({ counter: this.state.counter + 1 }, () => {
+          console.log(`callback 1 -- ${this.state.counter}`)
+        })
+        console.log(this.state.counter)
+
+        this.setState({ counter: this.state.counter + 1 }, () => {
+          console.log(`callback 2 -- ${this.state.counter}`)
+        })
+        console.log(this.state.counter)
+
+        this.setState({ counter: this.state.counter + 1 }, () => {
+          console.log(`callback 3 -- ${this.state.counter}`)
+        })
+        console.log(this.state.counter)
+      })
+    })
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        {this.state.counter}
+        <button onClick={() => this.handleClick()}>counter++</button>
+      </div>
+    )
+  }
+}
+
+export { BatchUpdateDemo3 }
+```
+
+<DemoBlock>
+  <BatchUpdateDemo3 />
+</DemoBlock>
+
+:::tip{title='unstable_batchedUpdates 使用场景'}
+
+当用 ajax 请求数据后如果有多次 setState 操作，可以考虑使用 unstable_batchedUpdates 包裹这些多次 setState 操作，开启批量更新 state 的特性，避免不必要地多次更新中间 state 视图
+
+:::
+
+### 1.6. 提升更新任务优先级
+
+ReactDOM 提供的 `flushSync` API 可以将传入的回调放在一个较高的优先级
+
+```tsx{4,13-22}
+/** @description 提升更新任务优先级 */
+
+import React from 'react'
+import ReactDOM from 'react-dom'
+
+interface BatchUpdateDemo4State {
+  counter: number
+}
+class BatchUpdateDemo4 extends React.Component<{}, BatchUpdateDemo4State> {
+  state: Readonly<BatchUpdateDemo4State> = { counter: 0 }
+
+  handleClick() {
+    setTimeout(() => {
+      this.setState({ counter: 1 })
+    })
+
+    this.setState({ counter: 2 })
+    ReactDOM.flushSync(() => {
+      this.setState({ counter: 3 })
+    })
+
+    this.setState({ counter: 4 })
+  }
+
+  render(): React.ReactNode {
+    console.log('BatchUpdateDemo4 -- ', this.state.counter)
+    return (
+      <div>
+        {this.state.counter}
+        <button onClick={() => this.handleClick()}>counter++</button>
+      </div>
+    )
+  }
+}
+
+export { BatchUpdateDemo4 }
+```
+
+<DemoBlock>
+  <BatchUpdateDemo4 />
+</DemoBlock>
+
+![flushSync提升更新任务优先级](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/flushSync%E6%8F%90%E5%8D%87%E6%9B%B4%E6%96%B0%E4%BB%BB%E5%8A%A1%E4%BC%98%E5%85%88%E7%BA%A7.png)
+
+可以看到，有了 `flushSync` 后，尽管前面有一个将 counter 设置为 2 的 setState，但是渲染函数并没有执行
+
+也就是说 `flushSync` 会与前面的同步 setState 进行合并后再渲染
+
+:::tip{title=更新任务优先级}
+
+flushSync 中的 setState > 正常执行上下文中的 setState > 异步操作(如 setTimeout, promise.then)中的 setState
+
+:::
+
+## 2. 函数组件中的 state
+
+### 2.1. useState 的用法
+
+关于 useState 的用法相信大家都比较熟悉了，不过这里还是稍微提一下
+
+#### 2.1.1. initialState
+
+```tsx
+const [state, setState] = useState(initialState)
+```
+
+常见的用法是 initialState 直接初始化一个数据，比如 number、string、boolean、object 等
+
+```tsx
+/** @description initialState 使用直接数据 */
+const UseStateDemo1: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+
+  const handleClick = () => {
+    setCounter(counter + 1)
+  }
+
+  return (
+    <div>
+      <p>{counter}</p>
+      <button onClick={() => handleClick()}>counter++</button>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <UseStateDemo1 />
+</DemoBlock>
+
+但其实 initialState 也能是一个函数，函数的返回值作为初始 state，这个场景用在哪里呢？
+
+它可以用在懒加载的场景，当 initialState 是一个需要复杂计算才能获得的值时，就适合用函数的方式作为 initialState
+
+```tsx
+/** @description initialState 使用函数 */
+const UseStateDemo2: React.FC = () => {
+  const [counter, setCounter] = useState(() => {
+    // 假设这里有很多复杂计算...
+    const value = Math.random() > 0.5 ? 1 : 0
+
+    // 计算完后返回值作为 initialState
+    return value
+  })
+
+  const handleClick = () => {
+    setCounter(counter + 1)
+  }
+
+  return (
+    <div>
+      <p>{counter}</p>
+      <button onClick={() => handleClick()}>counter++</button>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <UseStateDemo2 />
+</DemoBlock>
+
+初始值只会在首次渲染的时候被计算，后续更新渲染时不会再重复执行计算逻辑
+
+#### 2.1.2. setState
+
+setState 常见的是直接赋值使用，传入新的 state，但实际上他还支持传入函数，这个函数也被称为 reducer
+
+reducer 的参数是旧 state，使用时需要生成新 state 后返回
+
+```tsx
+/** @description setState reducer */
+const UseStateDemo3: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+
+  const handleClick = () => {
+    // 直接 setState
+    setCounter(counter + 1)
+
+    // 使用 reducer 的方式 setState
+    setCounter((counter) => counter + 1)
+  }
+
+  return (
+    <div>
+      <p>{counter}</p>
+      <button onClick={() => handleClick()}>counter + 2</button>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <UseStateDemo3 />
+</DemoBlock>
+
+:::warning{title='使用 reducer 时的注意事项'}
+
+如果 state 是一个 object，那么不应该在 reducer 中直接修改旧 state，而是拷贝一份后对副本进行修改并返回副本
+
+因为 react 底层对 state 的对比是浅比较的，也就是说如果新旧 state 都是指向同一个内存地址的对象，那么即使它们的属性发生了变化，视图也不会进行更新
+
+这就是所谓的 `immutable` 数据，这对 react 底层性能优化有重要意义
+
+:::
+
+### 2.2. 如何监听 state 变化？
+
+在类组件中我们要监听 state 变化时，有两种方式：
+
+1. 在 `this.setState` 的第二个回调参数中获取变化后的 state 进行操作
+2. 在 `componentDidUpdate` 生命周期中获取更新后的 state
+
+那么在函数组件中如何类似地对 state 进行监听呢？
+
+可以使用 `useEffect` 这个 hook
+
+在第一个回调参数中编写监听逻辑，将要监听的 state 放到第二个数组参数中即可在 state 变化时执行第一个回调参数
+
+```tsx
+/** @description 监听 counter 变化 */
+const UseEffectDemo1: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+
+  // 在 useEffect 中监听 counter 变化
+  useEffect(() => {
+    console.log(`counter changed: ${counter}`)
+  }, [counter])
+
+  return (
+    <div>
+      <p>{counter}</p>
+      <button onClick={() => setCounter(counter + 1)}>counter++</button>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <UseEffectDemo1 />
+</DemoBlock>
+
+## 3. 对比类组件和函数组件中的 state
+
+**相同点：**
+
+- 底层都调用了 `scheduleUpdateOnFiber` 方法，并且在事件系统中都有批量更新 state 的特性
+
+**不同点：**
+
+- 对于非 PureComponent 而言，类组件 setState 不会浅比较新旧 state，只要调用了就更新；而函数组件的 useState 会默认比较新旧 state 是否是同一个对象来决定是否进行更新
+- setState 倾向于合并 state 进行更新；useState 倾向于拷贝原 state，对副本进行改变触发更新
+- setState 可以通过第二个回调参数或者 componentDidUpdate 生命周期监听 state 变化；useState 需要配合 useEffect 来监听 state 变化
