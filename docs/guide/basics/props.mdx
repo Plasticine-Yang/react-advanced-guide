@@ -1,0 +1,171 @@
+import { DemoBlock } from '@island/demo-block'
+
+import { PropsDemo1 } from '~/demos/props/demo1.tsx'
+import { InjectPropsDemo1 } from '~/demos/props/demo2.tsx'
+import { InjectPropsDemo2 } from '~/demos/props/demo3.tsx'
+import { PropsPracticalDemo } from '~/demos/props/demo4'
+
+# 深入 Props
+
+## 1. 监听 props 变化
+
+### 1.1. 类组件中
+
+在 React 17 及之前的版本中，可以通过 `componentWillReceiveProps` 生命周期进行更新
+
+```tsx
+/** @description 监听 props 变化 */
+
+import React from 'react'
+
+interface PropsDemo1State {
+  message: string
+}
+interface PropsDemo1ChildProps {
+  message: string
+}
+class PropsDemo1 extends React.Component<{}, PropsDemo1State> {
+  state: Readonly<PropsDemo1State> = {
+    message: 'Hello React',
+  }
+
+  handleChange(newVal: string) {
+    this.setState({ message: newVal })
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        <PropsDemo1Child message={this.state.message} />
+        <input
+          type="text"
+          onChange={(e) => this.handleChange(e.target.value)}
+        />
+      </div>
+    )
+  }
+}
+class PropsDemo1Child extends React.Component<PropsDemo1ChildProps> {
+  // 监听 props 变化
+  componentWillReceiveProps(nextProps: Readonly<PropsDemo1ChildProps>): void {
+    console.log('[PropsDemo1Child] nextProps:', nextProps)
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        <p>{this.props.message}</p>
+      </div>
+    )
+  }
+}
+
+export { PropsDemo1 }
+```
+
+<DemoBlock>
+  <PropsDemo1 />
+</DemoBlock>
+
+![使用componentWillReceiveProps监听props变化](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E4%BD%BF%E7%94%A8componentWillReceiveProps%E7%9B%91%E5%90%ACprops%E5%8F%98%E5%8C%96.png)
+
+:::warning
+
+componentWillReceiveProps 在 React 18 开始已经不推荐使用，因为这个生命周期超越了 React 的可控制的范围内，可能引起多次执行等情况发生
+
+但是有替代的生命周期 `getDerivedStateFromProps`
+
+:::
+
+### 1.2. 函数组件中
+
+和监听 state 变化一样，只需将要监听的 props 放在 useEffect 的第二个参数数组中即可
+
+## 2. 注入 props
+
+可以 `显式注入` 和 `隐式注入` props
+
+### 2.1. 显式注入
+
+即传入给组件的 props 是什么最终得到的 props 就是什么
+
+```tsx
+/** @description 显式注入 props */
+
+import { createLoggerWithScope } from '~/utils'
+
+const logger = createLoggerWithScope('InjectPropsDemo1')
+
+const InjectPropsDemo1: React.FC = () => {
+  return (
+    <Father>
+      <Child name="plasticine" age="21" />
+    </Father>
+  )
+}
+
+const Father: React.FC<any> = (props) => {
+  return props.children
+}
+
+const Child: React.FC<any> = (props) => {
+  logger.log('props:', props)
+  return <div>child</div>
+}
+
+export { InjectPropsDemo1 }
+```
+
+<DemoBlock>
+  <InjectPropsDemo1 />
+</DemoBlock>
+
+### 2.2. 隐式注入 props
+
+传给组件的 props 和最终组件得到的 props 不同，通过中间组件隐式地向组件中注入额外的 props
+
+```tsx{17}
+/** @description 隐式注入 props */
+
+import React from 'react'
+import { createLoggerWithScope } from '~/utils'
+
+const logger = createLoggerWithScope('InjectPropsDemo2')
+
+const InjectPropsDemo2: React.FC = () => {
+  return (
+    <Father>
+      <Child name="plasticine" age="21" />
+    </Father>
+  )
+}
+
+const Father: React.FC<any> = (props) => {
+  return React.cloneElement(props.children, { injectedProp: 'hello' })
+}
+
+const Child: React.FC<any> = (props) => {
+  logger.log('props:', props)
+  return <div>child</div>
+}
+
+export { InjectPropsDemo2 }
+```
+
+:::tip
+
+当要修改元素的 props 时，推荐的方式是用 cloneElement 克隆原组件，对副本进行修改
+
+:::
+
+<DemoBlock>
+  <InjectPropsDemo2 />
+</DemoBlock>
+
+![显式注入和隐式注入props](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%98%BE%E5%BC%8F%E6%B3%A8%E5%85%A5%E5%92%8C%E9%9A%90%E5%BC%8F%E6%B3%A8%E5%85%A5props.png)
+
+## 3. 实战 -- Form 和 FormItem
+
+<DemoBlock>
+  <PropsPracticalDemo />
+</DemoBlock>

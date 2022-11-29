@@ -19,6 +19,10 @@ const generateBasics = () => {
         text: '玄学 state',
         link: generateLink('state'),
       },
+      {
+        text: '深入 Props',
+        link: generateLink('props'),
+      },
     ],
   }
 
