@@ -166,6 +166,263 @@ export { InjectPropsDemo2 }
 
 ## 3. 实战 -- Form 和 FormItem
 
+接下来我们就要用前面讲到的知识进行实战，比如：
+
+1. 隐式注入 props 用于屏蔽对外使用细节
+2. 对 props.children 进行过滤，只渲染目标组件
+
+### 3.1. 需求分析
+
+1. Form 组件实例提供三个方法：
+
+   1.1. setFormItemValue: 设置表单项的值
+
+   1.2. submit: 提交表单
+
+   1.3. reset: 重置表单
+
+2. FormItem 组件接收一个 name prop 作为最终提交表单时的 key 以及表单项展示时的 label
+
+3. Input 组件负责渲染文本框
+
+:::info{title=额外需求}
+
+1. Form 组件插槽中只会渲染 FormItem 组件，忽略其他组件或元素的渲染
+2. FormItem 组件插槽中只会渲染 Input 组件，忽略其他组件或元素的渲染
+
+:::
+
+### 3.2. 使用案例
+
+```tsx
+const PropsPracticalDemo: React.FC = () => {
+  const formRef = useRef<FormInstance>(null)
+
+  /** @description 提交表单 */
+  const submit = () => {
+    formRef.current?.submit((formData) => {
+      logger.log(formData)
+    })
+  }
+
+  /** @description 重置表单 */
+  const reset = () => {
+    formRef.current?.reset()
+  }
+
+  /** @description 生成表单模板数据 */
+  const generateFormData = () => {
+    formRef.current?.setFormItemValue('username', 'plasticine')
+    formRef.current?.setFormItemValue('password', '123456')
+  }
+
+  return (
+    <div className={s.container}>
+      <Form ref={formRef}>
+        <div>I will be ignored.</div>
+        <FormItem name="username">
+          <Input />
+        </FormItem>
+
+        <FormItem name="password">
+          <Input />
+        </FormItem>
+
+        <FormItem name="ignored">
+          <div>I will be ignored.</div>
+        </FormItem>
+      </Form>
+
+      <section className={s.buttonGroup}>
+        <button onClick={() => submit()}>提交</button>
+        <button onClick={() => reset()}>重置</button>
+        <button onClick={() => generateFormData()}>生成表单模板数据</button>
+      </section>
+    </div>
+  )
+}
+```
+
+### 3.3 实现
+
+#### 3.3.1 Form 组件
+
+```tsx
+import React, {
+  forwardRef,
+  ReactElement,
+  useImperativeHandle,
+  useState,
+} from 'react'
+
+import type { FormItemProps } from '../FormItem'
+
+import s from './style.module.scss'
+
+type FormData = Record<string, string>
+
+interface FormInstance {
+  /** @description 设置表单项的值 */
+  setFormItemValue: (key: string, value: string) => void
+
+  /** @description 提交表单 */
+  submit: (handleFormSubmit: (formData: FormData) => void) => void
+
+  /** @description 重置表单 */
+  reset: () => void
+}
+
+const Form: React.FC<any> = forwardRef<FormInstance, React.PropsWithChildren>(
+  (props, ref) => {
+    const [formData, setFormData] = useState<FormData>({})
+
+    /** @description 通过 ref 获取的组件实例 */
+    const formInstance: FormInstance = {
+      setFormItemValue(key, value) {
+        setFormData((formData) => ({
+          ...formData,
+          [key]: value,
+        }))
+      },
+
+      submit(handleFormSubmit) {
+        handleFormSubmit(formData)
+      },
+
+      reset() {
+        setFormData((oldFormData) => {
+          const initialFormData: FormData = {}
+
+          for (const key of Object.keys(oldFormData)) {
+            initialFormData[key] = ''
+          }
+
+          return initialFormData
+        })
+      },
+    }
+
+    // 通过 useImperativeHandle 将指定的属性和方法暴露给外界
+    useImperativeHandle(ref, () => formInstance)
+
+    const handleChange = (key: string, value: string) => {
+      setFormData((oldFormData) => {
+        const clonedFormData = { ...oldFormData }
+        clonedFormData[key] = value
+
+        return clonedFormData
+      })
+    }
+
+    const children: ReactElement[] = []
+    React.Children.forEach(props.children, (child) => {
+      if (
+        React.isValidElement(child) &&
+        (child.type as React.FC).displayName === 'FormItem'
+      ) {
+        const { name } = child.props
+
+        // 隐式注入 props
+        const Child = React.cloneElement<FormItemProps>(
+          child as React.ReactElement,
+          {
+            key: name,
+            value: formData[name] || '',
+            label: name,
+            onChange: handleChange,
+          },
+          child.props.children,
+        )
+
+        children.push(Child)
+      }
+    })
+
+    return <div className={s.form}>{children}</div>
+  },
+)
+
+export type { FormData, FormInstance }
+export { Form }
+```
+
+#### 3.3.2 FormItem 组件
+
+```tsx
+import React from 'react'
+
+import type { InputProps } from '../Input'
+
+import s from './style.module.scss'
+
+type FormItemProps = React.PropsWithChildren<{
+  name: string
+  value?: string
+  label?: string
+
+  onChange?: (key: string, value: string) => void
+}>
+const FormItem: React.FC<FormItemProps> = (props) => {
+  const { name, value, label, children } = props
+  const { onChange: emitChange } = props
+
+  const handleChange = (value: string) => {
+    emitChange && emitChange(name, value)
+  }
+
+  return (
+    <div className={s.formItem}>
+      <label htmlFor={name}>{label}</label>
+      {React.isValidElement(children) &&
+      (children.type as React.FC).displayName === 'Input'
+        ? // 隐式注入 Input 需要的 prop
+          React.cloneElement<InputProps>(children as React.ReactElement, {
+            value,
+            onChange: handleChange,
+          })
+        : ''}
+    </div>
+  )
+}
+
+// 起到标识作用 用于父组件条件渲染插槽时使用
+FormItem.displayName = 'FormItem'
+
+export type { FormItemProps }
+export { FormItem }
+```
+
+#### 3.3.3 Input 组件
+
+```tsx
+/**
+ * @description 表单项中的插槽组件 -- FormItem 只会渲染 Input 组件，其他组件会被忽略
+ */
+interface InputProps {
+  value?: string
+
+  onChange?: (value: string) => void
+}
+const Input: React.FC<InputProps> = (props) => {
+  const { value } = props
+  const { onChange: emitChange } = props
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => emitChange && emitChange(e.target.value)}
+    />
+  )
+}
+
+// 起到标识作用 用于父组件条件渲染插槽时使用
+Input.displayName = 'Input'
+
+export type { InputProps }
+export { Input }
+```
+
 <DemoBlock>
   <PropsPracticalDemo />
 </DemoBlock>
