@@ -23,6 +23,10 @@ const generateBasics = () => {
         text: '深入 Props',
         link: generateLink('props'),
       },
+      {
+        text: '理解生命周期',
+        link: generateLink('life-cycle'),
+      },
     ],
   }
 
