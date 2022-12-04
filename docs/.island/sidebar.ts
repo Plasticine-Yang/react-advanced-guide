@@ -27,6 +27,10 @@ const generateBasics = () => {
         text: '理解生命周期',
         link: generateLink('life-cycle'),
       },
+      {
+        text: '多功能 Ref',
+        link: generateLink('ref'),
+      },
     ],
   }
 
