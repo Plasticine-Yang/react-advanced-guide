@@ -1188,6 +1188,63 @@ fieldset {
 ._container_fmjh6_1 ._button-group_fmjh6_7 {
   display: flex;
   gap: 20px;
+}._father_11nmx_1 {
+  border: 3px solid #00ead3;
+  border-radius: 10px;
+  padding: 20px 30px;
+}
+._father_11nmx_1 h3 {
+  text-align: center;
+  color: #fff5b7;
+}
+
+._child_11nmx_11 {
+  margin-top: 30px;
+  border: 3px solid #00ead3;
+  border-radius: 10px;
+  padding: 20px 30px;
+}
+
+._message-input-box_11nmx_18 {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}._father_11nmx_1 {
+  border: 3px solid #00ead3;
+  border-radius: 10px;
+  padding: 20px 30px;
+}
+._father_11nmx_1 h3 {
+  text-align: center;
+  color: #fff5b7;
+}
+
+._child_11nmx_11 {
+  margin-top: 30px;
+  border: 3px solid #00ead3;
+  border-radius: 10px;
+  padding: 20px 30px;
+}
+
+._message-input-box_11nmx_18 {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}._container_oorws_1 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+._container_oorws_1 ._list_oorws_6 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+._container_oorws_1 ._item_oorws_11 {
+  border: 3px solid cyan;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
 }@media (min-width: 960px) {
   ._nav_1ic07_2 {
     -webkit-backdrop-filter: saturate(50%) blur(8px);
