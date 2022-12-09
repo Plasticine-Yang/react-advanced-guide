@@ -569,7 +569,7 @@ var N=Object.defineProperty;var f=(c,n,s)=>n in c?N(c,n,{enumerable:!0,configura
 `,l(n.li,{children:"getSnapshotBeforeUpdate: \u4FDD\u5B58\u7EC4\u4EF6\u66F4\u65B0\u524D\u7684 ScrollView \u5BB9\u5668\u9AD8\u5EA6"}),`
 `,l(n.li,{children:"componentDidUpdate: \u6839\u636E ScrollView \u66F4\u65B0\u524D\u540E\u7684\u9AD8\u5EA6\u8BA1\u7B97\u9AD8\u5EA6\u53D8\u5316\u91CF"}),`
 `,l(n.li,{children:"componentWillUnmount: \u89E3\u9664 scroll \u4E8B\u4EF6\u76D1\u542C\u5668"}),`
-`]})]})}function T(c={}){const{wrapper:n}=c.components||{};return n?l(n,Object.assign({},c,{children:l(m,c)})):m(c)}const O="2022/12/4 13:36:43",V=`import { DemoBlock } from '@island/demo-block'
+`]})]})}function T(c={}){const{wrapper:n}=c.components||{};return n?l(n,Object.assign({},c,{children:l(m,c)})):m(c)}const O="2022/12/9 15:30:05",V=`import { DemoBlock } from '@island/demo-block'
 
 import { FunctionComponentLifeCycleDemo } from '~/demos/life-cycle/demo1.tsx'
 import { ScrollViewClassComponentDemo } from '~/demos/life-cycle/demo2'
