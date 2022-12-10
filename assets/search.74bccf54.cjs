@@ -29,6 +29,7 @@ require("react/jsx-runtime");
 const ssrEntry = require("../ssr-entry.js");
 require("react-dom/server");
 require("mitt");
+require("prop-types");
 require("react-dom");
 require("react-router");
 require("copy-to-clipboard");

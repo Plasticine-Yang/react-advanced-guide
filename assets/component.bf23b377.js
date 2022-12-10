@@ -319,7 +319,7 @@ var y=Object.defineProperty;var D=(s,l,c)=>l in s?y(s,l,{enumerable:!0,configura
 \u81EA\u5B9A\u4E49 hooks \u7AE0\u8282\u4F1A\u8BE6\u7EC6\u4ECB\u7ECD`}),`
 `,e(l.li,{children:`HOC \u9AD8\u9636\u7EC4\u4EF6
 \u540C\u6837\u4F1A\u5728\u76F8\u5173\u7AE0\u8282\u4E13\u95E8\u4ECB\u7ECD`}),`
-`]})]})}function O(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(E,s)})):E(s)}const q="2022/12/10 02:12:55",T=`import { DemoBlock } from '@island/demo-block'
+`]})]})}function O(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(E,s)})):E(s)}const q="2022/12/10 12:58:15",T=`import { DemoBlock } from '@island/demo-block'
 
 # comopnent
 

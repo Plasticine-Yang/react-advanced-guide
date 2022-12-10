@@ -1172,6 +1172,18 @@ fieldset {
 }
 ._child_1eus2_24:hover {
   background-color: rgba(185, 131, 255, 0.1);
+}._container_170sc_1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+._container_170sc_1 ._consumer_170sc_7 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 300px;
+  height: 300px;
 }._form_qirhu_1 {
   display: flex;
   flex-direction: column;
