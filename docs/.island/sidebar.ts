@@ -8,28 +8,32 @@ const generateBasics = () => {
     text: '基础篇',
     items: [
       {
-        text: '认识 JSX',
+        text: 'jsx',
         link: generateLink('jsx'),
       },
       {
-        text: '起源 Component',
+        text: 'component',
         link: generateLink('component'),
       },
       {
-        text: '玄学 state',
+        text: 'state',
         link: generateLink('state'),
       },
       {
-        text: '深入 Props',
+        text: 'props',
         link: generateLink('props'),
       },
       {
-        text: '理解生命周期',
+        text: 'life cycle',
         link: generateLink('life-cycle'),
       },
       {
-        text: '多功能 Ref',
+        text: 'ref',
         link: generateLink('ref'),
+      },
+      {
+        text: 'context',
+        link: generateLink('context'),
       },
     ],
   }
