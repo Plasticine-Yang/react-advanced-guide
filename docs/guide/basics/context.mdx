@@ -1,0 +1,460 @@
+import { DemoBlock } from '@island/demo-block'
+
+import { ContextProviderDemo } from '~/demos/context/demo1.tsx'
+import {
+  ClassComponentProviderDemo,
+  FunctionComponentProviderDemo,
+  ContextProviderDemo2,
+} from '~/demos/context/demo2'
+import { DynamicContextDemo } from '~/demos/context/demo3'
+import { NestedContextDemo } from '~/demos/context/demo4'
+
+# context
+
+## 1. context 基本使用
+
+会分别介绍 React 中新旧版本的 context 使用方式
+
+- 旧版本是 `Legacy Context` -- React v16.3 之前
+- 新版本是 `New Context` -- React v16.3 之后
+
+### 1.1. Legacy Context
+
+提供数据的一方中要实现一个 `getChildContext` 方法，这个方法中的返回值会作为子组件获取的 context
+
+子组件中通过 `this.context` 即可获取到 context
+
+需要注意的是还要为他们添加类型声明才能正常工作，当然，这个类型声明指的不是 TypeScript 的类型声明，而是用于 React 运行时的类型检测
+
+我们可以结合 `prop-types` 这个库来声明 context 的类型，声明规则如下：
+
+1. **提供数据的组件要声明 `childContextTypes`**
+2. **消费数据的组件要声明 `contextTypes`**
+
+下面通过一个 Demo 来体验一下
+
+```tsx
+/** @description Legacy Context */
+
+import React from 'react'
+
+import PropTypes from 'prop-types'
+
+/**
+ * @description 提供数据
+ */
+class ContextProviderDemo extends React.Component {
+  /** @description 在 getChildContext 中指定 context 的数据 */
+  getChildContext() {
+    const theme = {
+      color: 'darkcyan',
+      background: 'cyan',
+    }
+
+    return { theme }
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div>
+        <p>Provider</p>
+        <ContextConsumerDemo />
+      </div>
+    )
+  }
+}
+
+// @ts-ignore
+ContextProviderDemo.childContextTypes = {
+  theme: PropTypes.object,
+}
+
+/**
+ * @description 消费数据
+ */
+class ContextConsumerDemo extends React.Component {
+  render(): React.ReactNode {
+    const { color, background } = (this.context as any).theme
+
+    return <div style={{ color, background }}>Consumer</div>
+  }
+}
+
+// @ts-ignore
+ContextConsumerDemo.contextTypes = {
+  theme: PropTypes.object,
+}
+
+export { ContextProviderDemo }
+```
+
+<DemoBlock>
+  <ContextProviderDemo />
+</DemoBlock>
+
+![legacy_context使用效果](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/legacy_context%E4%BD%BF%E7%94%A8%E6%95%88%E6%9E%9C.jpg)
+
+### 1.2. New Context
+
+#### 1.2.1. Legacy Context 存在什么问题？
+
+在如今这个 TypeScript 逐渐成为前端主流的时代，`Legacy Context` 中那种依赖于 `prop-types` 的用法未免太不优雅了，并且是强依赖于 `prop-types`，如果你不声明 `childContextTypes` 或 `contextTypes` 则会导致报错：
+
+未声明 contextTypes 时的报错信息：
+
+![未声明contextTypes时的报错信息](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%9C%AA%E5%A3%B0%E6%98%8EcontextTypes%E6%97%B6%E7%9A%84%E6%8A%A5%E9%94%99%E4%BF%A1%E6%81%AF.jpg)
+
+未声明 childContextTypes 时的报错信息：
+
+![未声明childContextTypes时的报错信息](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%9C%AA%E5%A3%B0%E6%98%8EchildContextTypes%E6%97%B6%E7%9A%84%E6%8A%A5%E9%94%99%E4%BF%A1%E6%81%AF.jpg)
+
+这种开发体验十分不好，因此从 React v16.3 开始，推出了新的 Context API，让我们一起来看看新的 Context API 如何使用吧~
+
+#### 1.2.2. 如何使用 New Context API
+
+React v16.3 之后出了一个 `createContext` API，见名知意，就是创建一个 context 对象用的，而这个 context 对象上有一个 `Provider` 属性和一个 `Consumer` 属性，可以直接当成组件使用
+
+```tsx
+// createContext 的第一个参数作为 context value 的初始值
+const ThemeContext = createContext(null)
+
+// 可直接作为组件使用
+const ThemeProvider = ThemeContext.Provider
+const ThemeConsumer = ThemeContext.Consumer
+
+const theme = { color: 'cyan', background: 'darkcyan' }
+<ThemeProvider value={theme}>
+  <ThemeConsumer />
+</ThemeProvider>
+```
+
+如果没有传递 value 属性给 Provider 组件时，则会使用 createContext 调用时传入的第一个参数作为默认值
+
+关于提供数据我们可以使用 Provider 组件，这种方式已经演示过了，很好理解
+
+但是消费数据则有三种使用方式，分别是针对类组件、函数组件以及使用 createContext 创建的 context 对象上的 Consumer 组件订阅方式，接下来我们分别看看它们如何使用吧~
+
+#### 1.2.3. 类组件中消费数据
+
+在类组件中消费数据，我们很自然会通过 `this.context` 去获取 createContext 创建出来的 context 对象，但此时就有一个问题了，React 怎么知道你的 this.context 是什么？它应该指向哪个 context?
+
+所以肯定是需要我们自己去指定使用的 context，很简单，只需要通过给类组件构造函数对象上声明一个 `contextType` 属性即可
+
+而如果要使用 TypeScript，为 this.context 添加类型声明怎么办？难道要每次都用类型断言，通过 `(this.context as Xxx).xxx` 的方式去使用吗？这样未免太不优雅了
+
+React 官方推荐的方式是使用 `declare` 关键字，在类组件中声明 context 的类型
+
+接下来我们通过一个小 Demo 体验一下吧~
+
+首先是 context 对象的管理，我们以主题上下文对象的管理为例
+
+`context.ts`
+
+```ts
+import { createContext } from 'react'
+
+interface Theme {
+  color: string
+  background: string
+}
+
+const defaultTheme: Theme = {
+  color: 'black',
+  background: 'white',
+}
+
+/** @description 主题上下文对象 */
+const ThemeContext = createContext<Theme>(defaultTheme)
+
+export { ThemeContext }
+```
+
+然后再在类组件中消费
+
+```tsx
+/** @description 类组件中消费数据 */
+
+import React from 'react'
+
+import { ThemeContext } from './context'
+
+class ClassComponentConsumerDemo extends React.Component {
+  // 为 context 声明类型
+  declare context: React.ContextType<typeof ThemeContext>
+
+  render(): React.ReactNode {
+    const { color, background } = this.context
+    return <div style={{ color, background }}>Class Component Consumber</div>
+  }
+}
+// 需要声明 contextType 才能让 React 知道类组件中的 this.context 指向谁
+// 注意不是 contextTypes !!!
+ClassComponentConsumerDemo.contextType = ThemeContext
+
+export { ClassComponentConsumerDemo }
+```
+
+<DemoBlock>
+  <ClassComponentProviderDemo />
+</DemoBlock>
+
+#### 1.2.4. 函数组件中消费数据
+
+函数组件中消费数据就很直观了，直接使用 `useContext` 这个 hook，传入我们的 context 对象即可获取到它的 value，并且能够自动推导类型，不需要我们为了类型推导去做什么额外的工作
+
+```tsx
+import { useContext, useState } from 'react'
+
+import { Theme, ThemeContext } from './context'
+
+const FunctionComponentProviderDemo: React.FC = () => {
+  const [theme] = useState<Theme>({
+    color: 'darkcyan',
+    background: 'cyan',
+  })
+
+  return (
+    <ThemeContext.Provider value={theme}>
+      <FunctionComponentConsumerDemo />
+    </ThemeContext.Provider>
+  )
+}
+
+const FunctionComponentConsumerDemo: React.FC = () => {
+  // 通过 useContext 消费最近的父组件中 Provider 提供的数据
+  const { color, background } = useContext(ThemeContext)
+
+  return <div style={{ color, background }}>Function Component Consumber</div>
+}
+
+export { FunctionComponentProviderDemo }
+```
+
+<DemoBlock>
+  <FunctionComponentProviderDemo />
+</DemoBlock>
+
+#### 1.2.5. 使用 context 对象的 Consumer 消费数据
+
+到目前位置，我们只使用了 `createContext` 创建的 context 对象中的 Provider 用于提供数据，但其实它还有一个 Consumer 组件可供我们消费数据
+
+这种方式通过在 Consumer 组件中的 callback children 消费数据
+
+```tsx
+import { useState } from 'react'
+
+import { Theme, ThemeContext } from './context'
+
+const ContextProviderDemo2: React.FC = () => {
+  const [theme] = useState<Theme>({ color: 'darkcyan', background: 'cyan' })
+
+  return (
+    <ThemeContext.Provider value={theme}>
+      <ContextConsumerDemo />
+    </ThemeContext.Provider>
+  )
+}
+
+interface ConsumberComponentProps {
+  theme: Theme
+}
+const ContextConsumerDemo: React.FC = () => {
+  // 消费数据的真正组件
+  const ConsumberComponent: React.FC<ConsumberComponentProps> = (props) => {
+    const { color, background } = props.theme
+
+    return <div style={{ color, background }}>Context Consumber Component</div>
+  }
+
+  // 通过包裹 Consumber 组件获取消费数据的能力，将消费数据作为组件 props 传给真正消费数据的组件
+  return (
+    <ThemeContext.Consumer>
+      {(theme) => <ConsumberComponent theme={theme} />}
+    </ThemeContext.Consumer>
+  )
+}
+
+export { ContextProviderDemo }
+```
+
+<DemoBlock>
+  <ContextProviderDemo2 />
+</DemoBlock>
+
+使用这种方式的优点在于无需理会是在类组件中还是在函数组件中消费数据，直接使用 context Consumber 组件即可
+
+### 1.3. 动态 context
+
+到目前为止，我们的 Demo 中使用的 context 都是静态的，那如果 context 需要是动态的话要怎么处理呢？比如我们添加一个按钮，点击后可以来回切换日间夜间模式
+
+```tsx
+import { useContext, useEffect, useState, memo } from 'react'
+
+import { createLoggerWithScope } from '~/utils'
+
+import { darkTheme, lightTheme, Theme, ThemeContext } from './context'
+
+import s from './style.module.scss'
+
+const logger = createLoggerWithScope('DynamicContextDemo')
+
+const DynamicContextDemo: React.FC = () => {
+  const [theme, setTheme] = useState<Theme>(lightTheme)
+
+  const handleToggleTheme = () => {
+    if (theme === lightTheme) setTheme(darkTheme)
+    else setTheme(lightTheme)
+  }
+
+  return (
+    <div className={s.container}>
+      <ThemeContext.Provider value={theme}>
+        <Child />
+      </ThemeContext.Provider>
+      <button onClick={() => handleToggleTheme()}>toggle theme</button>
+    </div>
+  )
+}
+
+// 通过 memo 处理后 只要 Child 组件的 props 不变则 Child 组件不会随着父组件的渲染而重新渲染
+// 这里是为了验证 Consumer 组件的更新并不是由 Child 组件的更新引起的
+const Child: React.FC = memo(() => {
+  // 用于验证 Consumer 更新是否是由 Child 组件更新引起的 而是由 context API 的运行机制引起的
+  useEffect(() => {
+    logger.log('Child 组件渲染')
+  })
+
+  return <Consumer />
+})
+
+const Consumer: React.FC = () => {
+  const { color, background } = useContext(ThemeContext)
+  return (
+    <div style={{ color, background }} className={s.consumer}>
+      Consumber
+    </div>
+  )
+}
+
+export { DynamicContextDemo }
+```
+
+<DemoBlock>
+  <DynamicContextDemo />
+</DemoBlock>
+
+这里已经对 Child 组件用 memo 处理过了，这样做是为了排除 Consumer 组件的更新是由 Child 组件更新引起的这一可能性
+
+我们可以通过控制台查看 Child 组件中的 `useEffect` 是否执行来验证这一点
+
+![动态context效果](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%8A%A8%E6%80%81context%E6%95%88%E6%9E%9C.gif)
+
+useEffect 没执行，而 Consumer 却更新了，说明是由 context API 的运行机制引起的更新
+
+除了使用 memo 包裹 Child 组件外，还有另外一种方式用于解决这里 Child 组件的不必要更新的方式，那就是使用 useMemo
+
+```tsx{12-17}
+const DynamicContextDemo: React.FC = () => {
+  const [theme, setTheme] = useState<Theme>(lightTheme)
+
+  const handleToggleTheme = () => {
+    if (theme === lightTheme) setTheme(darkTheme)
+    else setTheme(lightTheme)
+  }
+
+  return (
+    <div className={s.container}>
+      <ThemeContext.Provider value={theme}>
+        {useMemo(
+          () => (
+            <Child />
+          ),
+          [],
+        )}
+      </ThemeContext.Provider>
+      <button onClick={() => handleToggleTheme()}>toggle theme</button>
+    </div>
+  )
+}
+```
+
+### 1.4. displayName
+
+通过 createContext 创建的 context 对象还有一个 displayName 属性，该属性用于在 React Devtools 中进行展示
+
+```ts
+/** @description 主题上下文对象 */
+const ThemeContext = createContext<Theme>(defaultTheme)
+ThemeContext.displayName = 'PlasticineThemeContext'
+```
+
+![context的displayName作用](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/context%E7%9A%84displayName%E4%BD%9C%E7%94%A8.jpg)
+
+## 2. context 高阶用法
+
+### 2.1. 嵌套 context
+
+当我们有多个 context 需要被消费时，可以使用嵌套结构
+
+```tsx
+import { useContext, useState } from 'react'
+
+import {
+  defaultI18n,
+  defaultTheme,
+  I18n,
+  I18nContext,
+  Theme,
+  ThemeContext,
+} from './context'
+
+const NestedContextDemo: React.FC = () => {
+  const [theme] = useState<Theme>(defaultTheme)
+  const [i18n, setI18n] = useState<I18n>(defaultI18n)
+
+  const handleChangeLanguage = () => {
+    const { lang } = i18n
+
+    if (lang === 'zh-CN') setI18n({ lang: 'en-US' })
+    else setI18n({ lang: 'zh-CN' })
+  }
+
+  // 嵌套使用多个 context
+  return (
+    <div>
+      <ThemeContext.Provider value={theme}>
+        <I18nContext.Provider value={i18n}>
+          <Consumer />
+        </I18nContext.Provider>
+      </ThemeContext.Provider>
+
+      <button onClick={() => handleChangeLanguage()}>toggle language</button>
+    </div>
+  )
+}
+
+const Consumer: React.FC = () => {
+  const { color, background } = useContext(ThemeContext)
+  const { lang } = useContext(I18nContext)
+
+  return (
+    <div style={{ color, background }}>
+      <p>
+        {lang === 'zh-CN'
+          ? '你好世界'
+          : lang === 'en-US'
+          ? 'Hello World'
+          : 'unknown language'}
+      </p>
+    </div>
+  )
+}
+
+export { NestedContextDemo }
+```
+
+<DemoBlock>
+  <NestedContextDemo />
+</DemoBlock>
+
+![嵌套context](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%B5%8C%E5%A5%97context.gif)
