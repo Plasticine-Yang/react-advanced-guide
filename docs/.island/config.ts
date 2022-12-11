@@ -1,5 +1,7 @@
 import { defineConfig } from 'islandjs'
 
+import react from '@vitejs/plugin-react'
+
 import { alias } from '../../build'
 
 import { sidebar } from './sidebar'
@@ -28,8 +30,21 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [
+      // @ts-ignore
+      react({
+        jsxRuntime: 'automatic',
+        babel: {
+          plugins: [
+            ['@babel/plugin-proposal-decorators', { version: '2022-03' }],
+          ],
+        },
+      }),
+    ],
+
     resolve: {
-      alias: alias as any,
+      // @ts-ignore
+      alias,
     },
   },
 })

@@ -7,7 +7,12 @@ import { alias } from './build'
 export default defineConfig({
   plugins: [
     react({
-      jsxRuntime: 'classic',
+      jsxRuntime: 'automatic',
+      babel: {
+        plugins: [
+          ['@babel/plugin-proposal-decorators', { version: '2022-03' }],
+        ],
+      },
     }),
   ],
   resolve: {

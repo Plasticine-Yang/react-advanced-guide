@@ -35,6 +35,10 @@ const generateBasics = () => {
         text: 'context',
         link: generateLink('context'),
       },
+      {
+        text: 'HOC',
+        link: generateLink('HOC'),
+      },
     ],
   }
 
