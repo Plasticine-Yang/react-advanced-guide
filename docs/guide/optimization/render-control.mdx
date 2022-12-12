@@ -1,1 +1,529 @@
+import { DemoBlock } from '@island/demo-block'
+
+import {
+  RenderControlDemo1ClassComponent,
+  RenderControlDemo1FunctionComponent,
+} from '~/demos/render-control/demo1'
+import {
+  RenderControlDemo2ClassComponent,
+  RenderControlDemo2FunctionComponent,
+} from '~/demos/render-control/demo2'
+import { PureComponentDemo } from '~/demos/render-control/demo3'
+
 # 渲染控制
+
+## 1. render 阶段的作用
+
+总的来说，render 阶段的主要作用就是：
+
+> **在一次更新中产生的新状态，通过 `React.createElement` 创建新状态对应的 ReactElement**
+
+## 2. 控制渲染的几种方式
+
+可以从两个角度去看待：
+
+1. 父组件控制子组件的渲染 -- 通过 React.memo 实现
+2. 组件自身控制 -- PureComponent、shouldComponentUpdate
+
+### 2.1. 缓存 ReactElement 对象
+
+先来看看下面这个小 Demo，父组件重新渲染时，会连带子组件也重新渲染，尽管子组件的 props 和 state 没发生变化不需要重新渲染，也仍然是被重新渲染了
+
+```tsx
+interface RenderControlDemo1ClassComponentState {
+  counter: number
+}
+class RenderControlDemo1ClassComponent extends React.Component<
+  {},
+  RenderControlDemo1ClassComponentState
+> {
+  state: Readonly<RenderControlDemo1ClassComponentState> = {
+    counter: 0,
+  }
+
+  componentDidUpdate(): void {
+    logger.log('父组件更新渲染')
+  }
+
+  render(): React.ReactNode {
+    const { counter } = this.state
+
+    return (
+      <div className={s.parent}>
+        <p>父组件: {counter}</p>
+
+        <Child />
+
+        <button
+          onClick={() =>
+            this.setState((state) => ({ counter: state.counter + 1 }))
+          }
+        >
+          add count
+        </button>
+      </div>
+    )
+  }
+}
+
+class Child extends React.Component {
+  componentDidUpdate(): void {
+    logger.log('子组件更新渲染')
+  }
+
+  render(): React.ReactNode {
+    return (
+      <div className={s.child}>
+        <p>子组件</p>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <RenderControlDemo1ClassComponent />
+</DemoBlock>
+
+![父组件更新渲染引起的子组件不必要更新渲染](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E7%88%B6%E7%BB%84%E4%BB%B6%E6%9B%B4%E6%96%B0%E6%B8%B2%E6%9F%93%E5%BC%95%E8%B5%B7%E7%9A%84%E5%AD%90%E7%BB%84%E4%BB%B6%E4%B8%8D%E5%BF%85%E8%A6%81%E6%9B%B4%E6%96%B0%E6%B8%B2%E6%9F%93.gif)
+
+这里子组件其实完全没必要进行更新渲染的，但还是会随着父组件的更新渲染而更新，这个现象无论是在类组件还是函数组件中都会存在，比如下面这个等价的函数组件
+
+```tsx
+const RenderControlDemo1FunctionComponent: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+
+  useEffect(() => {
+    logger.log('父组件更新渲染')
+  })
+
+  return (
+    <div className={s.parent}>
+      <p>父组件: {counter}</p>
+
+      <Child />
+
+      <button onClick={() => setCounter(counter + 1)}>add count</button>
+    </div>
+  )
+}
+
+const Child: React.FC = () => {
+  useEffect(() => {
+    logger.log('子组件更新渲染')
+  })
+
+  return (
+    <div className={s.child}>
+      <p>子组件</p>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <RenderControlDemo1FunctionComponent />
+</DemoBlock>
+
+那有没有什么办法解决呢？
+
+只需要将子组件缓存起来即可，这样在父组件重新渲染到子组件时，如果发现其缓存命中，则不会对子组件重新渲染，直接复用之前的结果
+
+在类组件中可以自己编写控制渲染的逻辑，而函数组件中则需要通过 `useMemo` 这个 hook 实现相同的效果
+
+#### 2.1.1. 类组件实现缓存逻辑
+
+由于类组件可以保存状态，我们可以将子组件的 ReactElement 保存起来，然后每次父组件触发渲染时，执行我们的控制渲染逻辑检查子组件缓存是否命中，命中则直接复用，否则就重新渲染，完全由我们自己控制
+
+```tsx
+interface RenderControlDemo2ClassComponentState {
+  counter: number
+  childCounter: number
+}
+class RenderControlDemo2ClassComponent extends React.Component<
+  {},
+  RenderControlDemo2ClassComponentState
+> {
+  state: Readonly<RenderControlDemo2ClassComponentState> = {
+    counter: 0,
+    childCounter: 0,
+  }
+
+  cachedChild: ReactElement<ChildProps>
+
+  constructor(props: {}) {
+    super(props)
+
+    this.cachedChild = <Child counter={this.state.childCounter} />
+  }
+
+  componentDidUpdate(): void {
+    logger.log('父组件更新渲染')
+  }
+
+  childRenderControl() {
+    const { props } = this.cachedChild
+
+    // 仅当 childCounter 变化时才更新子组件
+    if (props.counter !== this.state.childCounter) {
+      // 使用新状态克隆子组件并更新缓存
+      return (this.cachedChild = React.cloneElement(this.cachedChild, {
+        counter: this.state.childCounter,
+      }))
+    }
+
+    // 否则直接返回缓存的子组件
+    return this.cachedChild
+  }
+
+  render(): React.ReactNode {
+    const { counter } = this.state
+
+    return (
+      <div className={s.parent}>
+        <p>父组件: {counter}</p>
+
+        {this.childRenderControl()}
+
+        <div className={s.btnGroup}>
+          <button
+            onClick={() =>
+              this.setState((state) => ({
+                ...this.state,
+                counter: state.counter + 1,
+              }))
+            }
+          >
+            add counter
+          </button>
+
+          <button
+            onClick={() =>
+              this.setState((state) => ({
+                ...this.state,
+                childCounter: state.childCounter + 1,
+              }))
+            }
+          >
+            add childCounter
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+
+interface ChildProps {
+  counter: number
+}
+class Child extends React.Component<ChildProps> {
+  componentDidUpdate(): void {
+    logger.log('子组件更新渲染')
+  }
+
+  render(): React.ReactNode {
+    const { counter } = this.props
+    return (
+      <div className={s.child}>
+        <p>子组件: {counter}</p>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <RenderControlDemo2ClassComponent />
+</DemoBlock>
+
+![类组件缓存React元素避免不必要的渲染](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E7%B1%BB%E7%BB%84%E4%BB%B6%E7%BC%93%E5%AD%98React%E5%85%83%E7%B4%A0%E9%81%BF%E5%85%8D%E4%B8%8D%E5%BF%85%E8%A6%81%E7%9A%84%E6%B8%B2%E6%9F%93.gif)
+
+可以看到，改变与子组件无关的状态时，子组件不会被更新，我们的缓存逻辑生效了，这样可以避免不必要的渲染开销
+
+#### 2.1.2. 函数组件 useMemo 缓存 ReactElement
+
+对于函数组件，由于不能像类组件那样保存状态，所以我们需要借助 hooks 来帮助我们实现缓存的特性，useMemo 就可以帮我们实现缓存的功能
+
+```tsx
+const RenderControlDemo2FunctionComponent: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+  const [childCounter, setChildCounter] = useState(0)
+
+  useEffect(() => {
+    logger.log('父组件更新渲染')
+  })
+
+  return (
+    <div className={s.parent}>
+      <p>父组件: {counter}</p>
+
+      {useMemo(
+        () => (
+          <Child counter={childCounter} />
+        ),
+        [childCounter],
+      )}
+
+      <div className={s.btnGroup}>
+        <button onClick={() => setCounter(counter + 1)}>add counter</button>
+        <button onClick={() => setChildCounter(childCounter + 1)}>
+          add childCounter
+        </button>
+      </div>
+    </div>
+  )
+}
+
+interface ChildProps {
+  counter: number
+}
+const Child: React.FC<ChildProps> = (props) => {
+  const { counter } = props
+
+  useEffect(() => {
+    logger.log('子组件更新渲染')
+  })
+
+  return (
+    <div className={s.child}>
+      <p>子组件: {counter}</p>
+    </div>
+  )
+}
+```
+
+<DemoBlock>
+  <RenderControlDemo2FunctionComponent />
+</DemoBlock>
+
+最终效果和类组件手动实现缓存逻辑是一样的，但明显函数组件的缓存逻辑写起来更加舒服，因为有 useMemo 这个语义化的 hook 帮我们完成了缓存逻辑，一方面提高了代码可读性，另一方面也降低了我们的心智负担，使用起来很简单
+
+### 2.2. PureComponent
+
+我们先来看一个 Demo，看看相同的子组件使用普通的 React.Component 和使用 React.PureComponent 有什么不同
+
+父组件：
+
+```tsx
+const PureComponentDemo: React.FC = () => {
+  const [counter, setCounter] = useState(0)
+  const [childCounter, setChildCounter] = useState(0)
+
+  return (
+    <div className={s.parent}>
+      <p>父组件：{counter}</p>
+
+      <NormalChild counter={childCounter} />
+      <PureChild counter={childCounter} />
+
+      <div className={s.btnGroup}>
+        <button onClick={() => setCounter(counter + 1)}>add counter</button>
+        <button onClick={() => setChildCounter(childCounter + 1)}>
+          add childCounter
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+子组件（只放出一个即可，另一个仅仅是 `extends React.Component` 和 `extends React.PureComponent` 的区别）
+
+```tsx
+interface ChildProps {
+  counter: number
+}
+interface ChildState {
+  foo: string
+  bar: string
+}
+
+/** @description PureComponent Child */
+class PureChild extends React.PureComponent<ChildProps, ChildState> {
+  state: Readonly<ChildState> = {
+    foo: 'foo',
+    bar: 'bar',
+  }
+
+  render(): React.ReactNode {
+    logger.log('PureChild 渲染')
+    const { counter } = this.props
+    return (
+      <div className={s.child}>
+        <p>PureComponent：{counter}</p>
+        <div className={s.btnGroup}>
+          <button onClick={() => this.setState({ foo: 'foo' })}>
+            setState 赋值相同属性值
+          </button>
+
+          <button onClick={() => this.setState({ foo: 'modified-foo' })}>
+            setState 赋值不同属性值
+          </button>
+
+          <button
+            onClick={() => {
+              this.setState((state) => {
+                // @ts-ignore
+                state.bar = 'modified-bar'
+                return state
+              })
+            }}
+          >
+            setState 返回相同的引用
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <PureComponentDemo />
+</DemoBlock>
+
+#### 2.2.1. 父组件状态变化对两种子组件的影响
+
+首先看看父组件更新 counter 和 childCounter 时，两个子组件是否会执行渲染更新：
+
+![父组件状态变化时对两种子组件的影响](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E7%88%B6%E7%BB%84%E4%BB%B6%E7%8A%B6%E6%80%81%E5%8F%98%E5%8C%96%E6%97%B6%E5%AF%B9%E4%B8%A4%E7%A7%8D%E5%AD%90%E7%BB%84%E4%BB%B6%E7%9A%84%E5%BD%B1%E5%93%8D.gif)
+
+可以看到，**普通的组件会随着父组件的重新渲染而重新渲染，而 PureComponent 则不会**
+
+#### 2.2.2. setState 赋值相同属性
+
+接下来再看看分别在两种子组件中通过 setState 赋值相同的属性值会发生什么：
+
+```tsx
+<button onClick={() => this.setState({ foo: 'foo' })}>
+  setState 赋值相同属性值
+</button>
+```
+
+![两种子组件中setState赋值相同属性值](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E4%B8%A4%E7%A7%8D%E5%AD%90%E7%BB%84%E4%BB%B6%E4%B8%ADsetState%E8%B5%8B%E5%80%BC%E7%9B%B8%E5%90%8C%E5%B1%9E%E6%80%A7%E5%80%BC.gif)
+
+可以看到，**setState 赋值的属性值相同时，普通组件会重新渲染，而 PureComponent 则不会**
+
+#### 2.2.3. setState 赋值不同属性
+
+接下里再看看分别再两种子组件中通过 setState 赋值不同的属性值会发生什么：
+
+```tsx
+<button onClick={() => this.setState({ foo: 'modified-foo' })}>
+  setState 赋值不同属性值
+</button>
+```
+
+![两种子组件中setState赋值不同属性值](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E4%B8%A4%E7%A7%8D%E5%AD%90%E7%BB%84%E4%BB%B6%E4%B8%ADsetState%E8%B5%8B%E5%80%BC%E4%B8%8D%E5%90%8C%E5%B1%9E%E6%80%A7%E5%80%BC.gif)
+
+可以看到，**setState 赋值的属性值不同时，两种组件都会重新渲染**
+
+#### 2.2.4. setState 返回相同的引用
+
+最后我们再看看当我们 setState 直接修改原始 state 属性值，返回的仍然是相同的 state 引用会发生什么：
+
+```tsx
+<button
+  onClick={() => {
+    this.setState((state) => {
+      // @ts-ignore
+      state.bar = 'modified-bar'
+      return state
+    })
+  }}
+>
+  setState 返回相同的引用
+</button>
+```
+
+![两种子组件中setState返回相同引用](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E4%B8%A4%E7%A7%8D%E5%AD%90%E7%BB%84%E4%BB%B6%E4%B8%ADsetState%E8%BF%94%E5%9B%9E%E7%9B%B8%E5%90%8C%E5%BC%95%E7%94%A8.gif)
+
+可以看到，**setState 返回相同引用时，普通组件会重新渲染，PureComponent 则不会**
+
+#### 2.2.5. PureComponent 的机制
+
+通过上面的 Demo，我们可以总结出如下几点：
+
+- 普通的组件会随着父组件的重新渲染而重新渲染，而 PureComponent 则不会
+- setState 赋值的属性值相同时，普通组件会重新渲染，而 PureComponent 则不会
+- setState 赋值的属性值不同时，两种组件都会重新渲染
+- setState 返回相同引用时，普通组件会重新渲染，PureComponent 则不会
+
+从这个现象中我们可以得出什么结论呢？
+
+PureComponent 只会在 props 或 state 改变时重新渲染，并且对 props 和 state 的比较是 `shallowEqual`，即只比较两个对象的一层，对于属性仍然是引用数据类型的则只会比较它们的内存地址是否相同，并不会继续递归比较内部属性是否相同
+
+以下是 React 源码中关于 shallowEqual 的注释和实现：
+
+```js
+/**
+ * Performs equality by iterating through keys on an object and returning false
+ * when any key has values which are not strictly equal between the arguments.
+ * Returns true when the values of all keys are strictly equal.
+ */
+function shallowEqual(objA: mixed, objB: mixed): boolean {
+  if (is(objA, objB)) {
+    return true
+  }
+
+  if (
+    typeof objA !== 'object' ||
+    objA === null ||
+    typeof objB !== 'object' ||
+    objB === null
+  ) {
+    return false
+  }
+
+  const keysA = Object.keys(objA)
+  const keysB = Object.keys(objB)
+
+  if (keysA.length !== keysB.length) {
+    return false
+  }
+
+  // Test for A's keys different from B.
+  for (let i = 0; i < keysA.length; i++) {
+    const currentKey = keysA[i]
+    if (
+      !hasOwnProperty.call(objB, currentKey) ||
+      !is(objA[currentKey], objB[currentKey])
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+// is 用于比较两个值是否严格相等
+function is(x: any, y: any) {
+  return (
+    (x === y && (x !== 0 || 1 / x === 1 / y)) || (x !== x && y !== y) // eslint-disable-line no-self-compare
+  )
+}
+```
+
+这样就不难理解 Demo 中的现象了，我们来逐一分析以下：
+
+1. 普通的组件会随着父组件的重新渲染而重新渲染，而 PureComponent 则不会
+
+   父组件改变 childCounter 时，子组件的新老 props 中 counter 的值不同了，从而 `shallowEqual` 判定为 true，不触发更新
+
+2. setState 赋值的属性值相同时，普通组件会重新渲染，而 PureComponent 则不会
+
+   state 引用发生了变化，但是新老 state 中的所有 key 的值都是可以用 React 实现的 `is` 去判定为相等的，从而 `shallowEqual` 判定为 true，不触发更新
+
+3. setState 赋值的属性值不同时，两种组件都会重新渲染
+
+   state 引用发生了变化，且新老 state 中的 foo 属性的值被 `is` 判定为不相等（旧 state 中 foo 的值为 'foo'，新 state 中 foo 的值为 'modified-foo'），从而 `shallowEqual` 判定为 false，触发更新
+
+4. setState 返回相同引用时，普通组件会重新渲染，PureComponent 则不会
+
+   state 引用未发生变化，直接返回 true，即便值变化了也不会继续去进行比较，从而不会更新
+
+总的来说，PureComponent 的核心就在于**使用 shallowEqual 对比 props 和 state，只对比第一层，对于嵌套的 object 并不会递归去比对，只要比对过程中发现一个属性发生了变化就会触发更新**
+
+## 3. 渲染控制流程图
+
+![渲染控制流程图](https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%B8%B2%E6%9F%93%E6%8E%A7%E5%88%B6%E6%B5%81%E7%A8%8B%E5%9B%BE.awebp)
