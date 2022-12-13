@@ -1,0 +1,243 @@
+import { DemoBlock } from '@island/demo-block'
+
+import { Demo1 } from '~/demos/render-tuning/demo1'
+import {
+  ComponentDidCatchDemo,
+  GetDerivedStateFromErrorDemo,
+} from '~/demos/render-tuning/demo2'
+import { Demo3 } from '~/demos/render-tuning/demo3'
+
+# 渲染调优
+
+## 1. 异步渲染和懒加载
+
+```tsx
+/** @description 使用 Suspense */
+
+import { FC, lazy, Suspense } from 'react'
+
+const Demo1: React.FC = () => {
+  return (
+    <Suspense fallback={<Loading />}>
+      <LazyComponent />
+    </Suspense>
+  )
+}
+
+const sleep = async (timeout: number) =>
+  new Promise((resolve) => setTimeout(resolve, timeout))
+
+const LazyComponent = lazy(async () => {
+  await sleep(4000)
+  return import('./foo')
+})
+
+const Loading: React.FC = () => {
+  return <div>Loading...</div>
+}
+
+export { Demo1 }
+```
+
+<DemoBlock>
+  <Demo1 />
+</DemoBlock>
+
+## 2. 渲染错误边界
+
+当渲染组件过程中出现异常时会导致页面白屏，这是很致命的，好在 React 提供了两周方式供我们处理渲染过程中的异常，并允许我们进行降级渲染，防止页面白屏这种致命错误的情况发生
+
+这两种方式是：
+
+1. componentDidCatch
+2. getDerivedStateFromError
+
+### 2.1. componentDidCatch
+
+```tsx
+/** @description 使用 componentDidError 控制错误渲染边界 */
+
+import React, { useState } from 'react'
+
+const Foo: React.FC = () => {
+  const [hasError, setHasError] = useState(false)
+
+  if (hasError) {
+    throw new Error('throw error 按钮触发异常')
+  }
+
+  return (
+    <div>
+      <p>Foo</p>
+      <button
+        onClick={() => {
+          setHasError(true)
+        }}
+      >
+        throw error
+      </button>
+    </div>
+  )
+}
+
+interface ComponentDidCatchDemoState {
+  hasError: boolean
+  errorInfo: string
+}
+class ComponentDidCatchDemo extends React.Component<
+  {},
+  ComponentDidCatchDemoState
+> {
+  state: Readonly<ComponentDidCatchDemoState> = {
+    hasError: false,
+    errorInfo: '',
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.log(error, errorInfo)
+    this.setState({ hasError: true, errorInfo: error.message })
+  }
+
+  render(): React.ReactNode {
+    const { hasError, errorInfo } = this.state
+    return (
+      <div>
+        {hasError ? <div>Foo 组件错误: {errorInfo}</div> : <Foo />}
+        <p>Hello</p>
+      </div>
+    )
+  }
+}
+
+export { ComponentDidCatchDemo }
+```
+
+<DemoBlock>
+  <ComponentDidCatchDemo />
+</DemoBlock>
+
+### 2.2. getDerivedStateFromError
+
+这是一个静态方法，它的返回值会被合并到 state 中，更推荐使用这种方式处理渲染异常，因为在这里面不能获取到 this，可以避免我们误操作 setState 导致不可预料的后果
+
+```tsx
+class GetDerivedStateFromErrorDemo extends React.Component<
+  {},
+  GetDerivedStateFromErrorDemoState
+> {
+  state: Readonly<GetDerivedStateFromErrorDemoState> = {
+    hasError: false,
+    errorInfo: '',
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorInfo: error.message }
+  }
+
+  render(): React.ReactNode {
+    const { hasError, errorInfo } = this.state
+    return (
+      <div>
+        {hasError ? <div>Foo 组件错误: {errorInfo}</div> : <Foo />}
+        <p>Hello</p>
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <GetDerivedStateFromErrorDemo />
+</DemoBlock>
+
+### 2.3. 对比
+
+`componentDidCatch`
+
+```tsx
+componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+  this.setState({ hasError: true, errorInfo: error.message })
+}
+```
+
+`getDerivedStateFromError`
+
+```tsx
+static getDerivedStateFromError(error: Error) {
+  return { hasError: true, errorInfo: error.message }
+}
+```
+
+## 3. 从 diff 来看 key 的作用
+
+### 3.1. diff children 流程
+
+```js
+function reconcileChildrenArray() {
+  /* 第一步 -- 遍历新 children ，复用 oldFiber  */
+  for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+    if (oldFiber.index > newIdx) {
+      nextOldFiber = oldFiber
+      oldFiber = null
+    } else {
+      nextOldFiber = oldFiber.sibling
+    }
+    const newFiber = updateSlot(
+      returnFiber,
+      oldFiber,
+      newChildren[newIdx],
+      expirationTime,
+    )
+    if (newFiber === null) {
+      break
+    }
+    // ..一些其他逻辑
+    if (shouldTrackSideEffects) {
+      // shouldTrackSideEffects 为更新流程。
+      if (oldFiber && newFiber.alternate === null) {
+        /* 找到了与新节点对应的fiber，但是不能复用，那么直接删除老节点 */
+        deleteChild(returnFiber, oldFiber)
+      }
+    }
+  }
+
+  // 第二步：统一删除oldfiber
+  if (newIdx === newChildren.length) {
+    deleteRemainingChildren(returnFiber, oldFiber)
+    return resultingFirstChild
+  }
+
+  // 第三步：统一创建newFiber
+  if (oldFiber === null) {
+    for (; newIdx < newChildren.length; newIdx++) {
+      const newFiber = createChild(
+        returnFiber,
+        newChildren[newIdx],
+        expirationTime,
+      )
+      // ...
+    }
+  }
+
+  // 第四步：针对发生移动和更复杂的情况
+  const existingChildren = mapRemainingChildren(returnFiber, oldFiber)
+  for (; newIdx < newChildren.length; newIdx++) {
+    const newFiber = updateFromMap(existingChildren, returnFiber)
+    /* 从mapRemainingChildren删掉已经复用oldFiber */
+  }
+
+  // 第五步：删除剩余没有复用的oldFiber
+  if (shouldTrackSideEffects) {
+    /* 移除没有复用到的oldFiber */
+    existingChildren.forEach((child) => deleteChild(returnFiber, child))
+  }
+}
+```
+
+## 4. 实战 -- 异步组件
+
+使用 Suspense + React.lazy 实现异步组件，支持传入一个异步函数用于获取数据，其 resolve 的结果会作为 apiData 属性传递给传入的组件
+
+<DemoBlock>
+  <Demo3 />
+</DemoBlock>

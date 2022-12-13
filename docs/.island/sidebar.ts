@@ -44,7 +44,10 @@ const basicSidebarGroupConfig: SidebarGroupConfig = {
 const optimizationSidebarGroupConfig: SidebarGroupConfig = {
   displayName: '优化篇',
   path: '/guide/optimization/',
-  items: [{ text: '渲染控制', link: 'render-control' }],
+  items: [
+    { text: '渲染控制', link: 'render-control' },
+    { text: '渲染调优', link: 'render-tuning' },
+  ],
 }
 
 interface SidebarGroupConfig {
