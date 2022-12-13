@@ -359,7 +359,7 @@ var A=Object.defineProperty;var u=(s,l,r)=>l in s?A(s,l,{enumerable:!0,configura
 `,e(l.span,{className:"line",children:[n(l.span,{style:{color:"#81A1C1"},children:"export"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#81A1C1"},children:"type"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#ECEFF4"},children:"{"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#D8DEE9"},children:"InputProps"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#ECEFF4"},children:"}"})]}),`
 `,e(l.span,{className:"line",children:[n(l.span,{style:{color:"#81A1C1"},children:"export"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#ECEFF4"},children:"{"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#D8DEE9"},children:"Input"}),n(l.span,{style:{color:"#D8DEE9FF"},children:" "}),n(l.span,{style:{color:"#ECEFF4"},children:"}"})]}),`
 `,n(l.span,{className:"line"})]})})]}),`
-`,n(h,{children:n(X,{})})]})}function nl(s={}){const{wrapper:l}=s.components||{};return l?n(l,Object.assign({},s,{children:n(N,s)})):N(s)}const el="2022/12/12 08:09:51",sl=`import { DemoBlock } from '@island/demo-block'
+`,n(h,{children:n(X,{})})]})}function nl(s={}){const{wrapper:l}=s.components||{};return l?n(l,Object.assign({},s,{children:n(N,s)})):N(s)}const el="2022/12/13 07:50:11",sl=`import { DemoBlock } from '@island/demo-block'
 
 import { PropsDemo1 } from '~/demos/props/demo1.tsx'
 import { InjectPropsDemo1 } from '~/demos/props/demo2.tsx'
