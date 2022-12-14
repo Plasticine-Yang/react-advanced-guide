@@ -302,7 +302,7 @@ import{jsxs as n,Fragment as E,jsx as e}from"react/jsx-runtime";import{D as y}fr
 `,e(l.span,{className:"line",children:e(l.span,{style:{color:"#d8dee9ff"},children:"});"})}),`
 `,e(l.span,{className:"line",children:e(l.span,{style:{color:"#d8dee9ff"}})})]})})]}),`
 `]}),`
-`]})]})}function S(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(D,s)})):D(s)}const j="2022/12/13 07:50:11",w=`import { DemoBlock } from '@island/demo-block'
+`]})]})}function S(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(D,s)})):D(s)}const j="2022/12/14 02:23:45",w=`import { DemoBlock } from '@island/demo-block'
 
 # jsx
 

@@ -437,7 +437,7 @@ var A=Object.defineProperty;var N=(s,l,c)=>l in s?A(s,l,{enumerable:!0,configura
 `]}),`
 `,e(l.p,{children:["\u603B\u7684\u6765\u8BF4\uFF0CPureComponent \u7684\u6838\u5FC3\u5C31\u5728\u4E8E",n(l.strong,{children:"\u4F7F\u7528 shallowEqual \u5BF9\u6BD4 props \u548C state\uFF0C\u53EA\u5BF9\u6BD4\u7B2C\u4E00\u5C42\uFF0C\u5BF9\u4E8E\u5D4C\u5957\u7684 object \u5E76\u4E0D\u4F1A\u9012\u5F52\u53BB\u6BD4\u5BF9\uFF0C\u53EA\u8981\u6BD4\u5BF9\u8FC7\u7A0B\u4E2D\u53D1\u73B0\u4E00\u4E2A\u5C5E\u6027\u53D1\u751F\u4E86\u53D8\u5316\u5C31\u4F1A\u89E6\u53D1\u66F4\u65B0"})]}),`
 `,e(l.h2,{id:"3-\u6E32\u67D3\u63A7\u5236\u6D41\u7A0B\u56FE",children:[n(l.a,{className:"header-anchor","aria-hidden":"true",href:"#3-\u6E32\u67D3\u63A7\u5236\u6D41\u7A0B\u56FE",children:"#"}),"3. \u6E32\u67D3\u63A7\u5236\u6D41\u7A0B\u56FE"]}),`
-`,n(l.p,{children:n(l.img,{src:"https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%B8%B2%E6%9F%93%E6%8E%A7%E5%88%B6%E6%B5%81%E7%A8%8B%E5%9B%BE.awebp",alt:"\u6E32\u67D3\u63A7\u5236\u6D41\u7A0B\u56FE"})})]})}function V(s={}){const{wrapper:l}=s.components||{};return l?n(l,Object.assign({},s,{children:n(D,s)})):D(s)}const Z="2022/12/13 07:50:11",ll=`import { DemoBlock } from '@island/demo-block'
+`,n(l.p,{children:n(l.img,{src:"https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E6%B8%B2%E6%9F%93%E6%8E%A7%E5%88%B6%E6%B5%81%E7%A8%8B%E5%9B%BE.awebp",alt:"\u6E32\u67D3\u63A7\u5236\u6D41\u7A0B\u56FE"})})]})}function V(s={}){const{wrapper:l}=s.components||{};return l?n(l,Object.assign({},s,{children:n(D,s)})):D(s)}const Z="2022/12/14 02:23:45",ll=`import { DemoBlock } from '@island/demo-block'
 
 import {
   RenderControlDemo1ClassComponent,
