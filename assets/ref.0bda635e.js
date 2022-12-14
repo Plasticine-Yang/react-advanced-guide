@@ -828,7 +828,7 @@ var v=Object.defineProperty;var T=(s,l,c)=>l in s?v(s,l,{enumerable:!0,configura
 `,e(l.li,{children:"ref \u7684\u7406\u89E3\u4E0E\u4F7F\u7528\uFF0C\u5305\u62EC\u5982\u4F55\u521B\u5EFA ref \u5BF9\u8C61\uFF0C\u4EE5\u53CA\u9664\u4E86 object ref \u4E4B\u5916\u7684 string ref \u548C callback ref \u7684\u65B9\u5F0F\u53BB\u4F7F\u7528 ref"}),`
 `,e(l.li,{children:"ref \u7684\u9AD8\u9636\u7528\u6CD5\uFF0C\u5305\u62EC forwardRef \u8F6C\u53D1 ref\u3001ref \u5B9E\u73B0\u7EC4\u4EF6\u901A\u4FE1\u3001\u5229\u7528 ref \u5728\u51FD\u6570\u7EC4\u4EF6\u4E2D\u7F13\u5B58\u6570\u636E\u7B49"}),`
 `,e(l.li,{children:"\u901A\u8FC7\u4E00\u4E2A\u7B80\u5355\u7684 callback ref \u7684 Demo \u7814\u7A76 ref \u7684\u5E95\u5C42\u539F\u7406\uFF0Cstring ref \u4E3A\u4F55\u4E5F\u662F\u4EE5\u51FD\u6570\u7684\u65B9\u5F0F\u88AB\u8C03\u7528\uFF0C\u4EE5\u53CA ref \u7684\u6267\u884C\u65F6\u673A"}),`
-`]})]})}function ul(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(g,s)})):g(s)}const Bl="2022/12/14 02:23:45",Al=`import { DemoBlock } from '@island/demo-block'
+`]})]})}function ul(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(g,s)})):g(s)}const Bl="2022/12/14 06:33:26",Al=`import { DemoBlock } from '@island/demo-block'
 
 import { RefDemo1, RefDemo2, RefDemo3 } from '~/demos/ref/demo1.tsx'
 import { GrandFather } from '~/demos/ref/demo2.tsx'

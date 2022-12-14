@@ -247,7 +247,7 @@ var u=Object.defineProperty;var A=(r,l,s)=>l in r?u(r,l,{enumerable:!0,configura
 `,n(l.span,{className:"line"})]})})]}),`
 `]}),`
 `]}),`
-`,e(l.h2,{id:"3-\u65B9\u6848\u4E8C\u865A\u62DF\u5217\u8868",children:[n(l.a,{className:"header-anchor","aria-hidden":"true",href:"#3-\u65B9\u6848\u4E8C\u865A\u62DF\u5217\u8868",children:"#"}),"3. \u65B9\u6848\u4E8C\uFF1A\u865A\u62DF\u5217\u8868"]})]})}function rl(r={}){const{wrapper:l}=r.components||{};return l?n(l,Object.assign({},r,{children:n(D,r)})):D(r)}const ol="2022/12/14 02:23:45",al=`import { DemoBlock } from '@island/demo-block'
+`,e(l.h2,{id:"3-\u65B9\u6848\u4E8C\u865A\u62DF\u5217\u8868",children:[n(l.a,{className:"header-anchor","aria-hidden":"true",href:"#3-\u65B9\u6848\u4E8C\u865A\u62DF\u5217\u8868",children:"#"}),"3. \u65B9\u6848\u4E8C\uFF1A\u865A\u62DF\u5217\u8868"]})]})}function rl(r={}){const{wrapper:l}=r.components||{};return l?n(l,Object.assign({},r,{children:n(D,r)})):D(r)}const ol="2022/12/14 06:33:26",al=`import { DemoBlock } from '@island/demo-block'
 
 import { Demo1 } from '~/demos/render-massive-data/demo1'
 import { Demo2 } from '~/demos/render-massive-data/demo2'
