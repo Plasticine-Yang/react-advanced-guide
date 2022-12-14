@@ -5,38 +5,14 @@ const basicSidebarGroupConfig: SidebarGroupConfig = {
   path: '/guide/basics/',
   displayName: '基础篇',
   items: [
-    {
-      text: 'jsx',
-      link: 'jsx',
-    },
-    {
-      text: 'component',
-      link: 'component',
-    },
-    {
-      text: 'state',
-      link: 'state',
-    },
-    {
-      text: 'props',
-      link: 'props',
-    },
-    {
-      text: 'life cycle',
-      link: 'life-cycle',
-    },
-    {
-      text: 'ref',
-      link: 'ref',
-    },
-    {
-      text: 'context',
-      link: 'context',
-    },
-    {
-      text: 'HOC',
-      link: 'HOC',
-    },
+    { text: 'jsx', link: 'jsx' },
+    { text: 'component', link: 'component' },
+    { text: 'state', link: 'state' },
+    { text: 'props', link: 'props' },
+    { text: 'life cycle', link: 'life-cycle' },
+    { text: 'ref', link: 'ref' },
+    { text: 'context', link: 'context' },
+    { text: 'HOC', link: 'HOC' },
   ],
 }
 
@@ -47,6 +23,7 @@ const optimizationSidebarGroupConfig: SidebarGroupConfig = {
   items: [
     { text: '渲染控制', link: 'render-control' },
     { text: '渲染调优', link: 'render-tuning' },
+    { text: '渲染海量数据', link: 'render-massive-data' },
   ],
 }
 

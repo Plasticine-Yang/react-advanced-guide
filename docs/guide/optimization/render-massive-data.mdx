@@ -1,0 +1,270 @@
+import { DemoBlock } from '@island/demo-block'
+
+import { Demo1 } from '~/demos/render-massive-data/demo1'
+import { Demo2 } from '~/demos/render-massive-data/demo2'
+
+# 渲染海量数据
+
+## 1. 案例场景
+
+```tsx
+interface MassiveDataProps {
+  /** @description 数据量 */
+  dataCount: number
+}
+interface MassiveDataState {
+  /** @description 容器元素形状信息 */
+  containerShape: ContainerShape
+
+  /** @description 渲染列表 */
+  dataList: number[]
+}
+class MassiveData extends Component<MassiveDataProps, MassiveDataState> {
+  state: Readonly<MassiveDataState> = {
+    containerShape: { width: 0, height: 0 },
+    dataList: [],
+  }
+
+  el = createRef<HTMLDivElement>()
+
+  refresh() {
+    // 获取容器元素的宽高
+    const { offsetWidth, offsetHeight } = this.el.current!
+
+    // 生成渲染列表
+    const { dataCount } = this.props
+    const dataList = new Array(dataCount).fill(666)
+
+    this.setState({
+      containerShape: {
+        width: offsetWidth,
+        height: offsetHeight,
+      },
+
+      dataList,
+    })
+  }
+
+  /** @description 生成渲染列表 */
+  componentDidMount(): void {
+    this.refresh()
+  }
+
+  componentDidUpdate(prevProps: Readonly<MassiveDataProps>): void {
+    const { dataCount } = prevProps
+    if (dataCount !== this.props.dataCount) {
+      this.refresh()
+    }
+  }
+
+  render(): ReactNode {
+    const { dataList, containerShape } = this.state
+
+    /** @description 根据渲染列表得到的视图元素列表 */
+    const renderList = () =>
+      dataList.map((_, idx) => (
+        <Circle containerShape={containerShape} key={idx} />
+      ))
+
+    return (
+      <div ref={this.el} className={s.massiveData}>
+        {renderList()}
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <Demo1 />
+</DemoBlock>
+
+## 2. 方案一：时间分片
+
+大数据渲染时如果一次性渲染全部数据会造成上面 Demo 中的卡顿效果，但是如果把它们都拆分到各个每个细小的时间片中去进行就不会卡顿了
+
+这种解决方案无论是会改变可视区域长列表，还是不会改变可视区域的大量数据渲染都是适用的
+
+```tsx
+type MassiveDataProps = MassiveDataConfig
+interface MassiveDataState {
+  /** @description 容器元素形状信息 */
+  containerShape: ContainerShape
+
+  /** @description 数据列表 */
+  dataList: number[]
+
+  /** @description 渲染列表 */
+  renderList: any[]
+}
+class MassiveData extends Component<MassiveDataProps, MassiveDataState> {
+  state: Readonly<MassiveDataState> = {
+    containerShape: { width: 0, height: 0 },
+    dataList: [],
+    renderList: [],
+  }
+
+  el = createRef<HTMLDivElement>()
+
+  /** @description 刷新视图 */
+  refresh() {
+    const { timeSlicingCount } = this.props
+
+    // 获取容器元素的宽高
+    const { offsetWidth, offsetHeight } = this.el.current!
+
+    // 生成渲染列表
+    const { dataCount } = this.props
+    const dataList = new Array(dataCount).fill(666)
+
+    // 计算需要多少个时间片
+    const times = Math.ceil(dataList.length / timeSlicingCount)
+
+    this.setState(
+      {
+        containerShape: {
+          width: offsetWidth,
+          height: offsetHeight,
+        },
+
+        dataList,
+
+        // 每次 refresh 需要清空之前缓存的 renderList
+        renderList: [],
+      },
+
+      () => {
+        // 数据列表更新后启动时间分片渲染流程
+        this.renderListByTimeSlicing(1, times)
+      },
+    )
+  }
+
+  /**
+   * @description 时间分片渲染流程
+   * @param timeSliceIdx 当前所在的时间分片下标 -- 从 1 开始
+   * @param times 总共的时间片数量
+   */
+  renderListByTimeSlicing(timeSliceIdx: number, times: number) {
+    // base case: 所有时间片渲染完毕则没必要再渲染
+    if (timeSliceIdx > times) return
+
+    // 往 this.state.renderList 中添加数据进行缓存，方便后续渲染时直接复用
+    const { renderList } = this.state
+    renderList.push(this.renderTimeSlice(timeSliceIdx))
+
+    // 更新 renderList 触发当前时间片对应的视图更新
+    this.setState({
+      renderList,
+    })
+
+    // 在 requestIdleCallback 中递归渲染后续时间片
+    requestIdleCallback(() => {
+      this.renderListByTimeSlicing(++timeSliceIdx, times)
+    })
+  }
+
+  /** @description 渲染时间片 */
+  renderTimeSlice(timeSliceIdx: number) {
+    const { dataList, containerShape } = this.state
+    const { timeSlicingCount } = this.props
+
+    // 截取出当前时间片对应的数据列表
+    const targetDataList = dataList.slice(
+      (timeSliceIdx - 1) * timeSlicingCount,
+      timeSliceIdx * timeSlicingCount,
+    )
+
+    return (
+      <Fragment key={timeSliceIdx}>
+        {targetDataList.map((_, idx) => (
+          <Circle
+            containerShape={containerShape}
+            key={`${timeSliceIdx}-${idx}`}
+          />
+        ))}
+      </Fragment>
+    )
+  }
+
+  /** @description 生成渲染列表 */
+  componentDidMount(): void {
+    this.refresh()
+  }
+
+  componentDidUpdate(prevProps: Readonly<MassiveDataProps>): void {
+    const { dataCount, timeSlicingCount } = prevProps
+    const { dataCount: nextDataCount, timeSlicingCount: nextTimeSlicingCount } =
+      this.props
+
+    // 仅当 dataCount 或 timeSlicingCount 发生变化时才重新渲染
+    if (
+      dataCount !== nextDataCount ||
+      timeSlicingCount !== nextTimeSlicingCount
+    ) {
+      this.refresh()
+    }
+  }
+
+  render(): ReactNode {
+    const { renderList } = this.state
+
+    return (
+      <div ref={this.el} className={s.massiveData}>
+        {renderList}
+      </div>
+    )
+  }
+}
+```
+
+<DemoBlock>
+  <Demo2 />
+</DemoBlock>
+
+核心思路主要分为以下几个步骤：
+
+1. 计算时间片的数量，可以用总数据量除以每个时间片的渲染数量获得（需要向上取整确保能够渲染所有数据）
+
+   ```tsx
+   const times = Math.ceil(dataList.length / timeSlicingCount)
+   ```
+
+2. 在 setState 的第二个回调函数中启动时间分片渲染流程
+
+   ```tsx
+   this.setState(
+     {
+       containerShape: {
+         width: offsetWidth,
+         height: offsetHeight,
+       },
+
+       dataList,
+
+       // 每次 refresh 需要清空之前缓存的 renderList
+       renderList: [],
+     },
+
+     () => {
+       // 数据列表更新后启动时间分片渲染流程
+       this.renderListByTimeSlicing(1, times)
+     },
+   )
+   ```
+
+3. 利用类组件的 state 进行缓存，每次时间片渲染都将渲染得到的元素加入到缓存数组中，并调用 setState 更新当前时间片视图
+
+4. 利用 requestIdleCallback 递归渲染后续时间片，直到所有时间片渲染完成
+
+5. 每个时间片的渲染使用 Fragment 进行优化
+
+   ```tsx
+   <Fragment key={timeSliceIdx}>
+     {targetDataList.map((_, idx) => (
+       <Circle containerShape={containerShape} key={`${timeSliceIdx}-${idx}`} />
+     ))}
+   </Fragment>
+   ```
+
+## 3. 方案二：虚拟列表
