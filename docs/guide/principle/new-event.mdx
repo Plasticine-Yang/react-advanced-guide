@@ -1,0 +1,59 @@
+# 事件原理 -- 新版本
+
+## 1. 老版本事件系统存在的问题
+
+老版本事件系统是模拟原生事件流实现的，其本质上都是在冒泡阶段执行的，比如下面这个 Demo
+
+```tsx
+const Demo: React.FC = () => {
+  const buttonRef = useRef(null)
+
+  useEffect(() => {
+    const internalHandleButtonClick = () => {
+      console.log('原生事件监听器')
+    }
+
+    buttonRef.current.addEventListener('click', internalHandleButtonClick)
+
+    return () => {
+      buttonRef.current.removeEventListener('click', internalHandleButtonClick)
+    }
+  }, [])
+
+  const handleClick = () => {
+    console.log('冒泡阶段监听器')
+  }
+
+  const handleClickCapture = () => {
+    console.log('捕获阶段监听器')
+  }
+
+  return (
+    <button
+      ref={buttonRef}
+      onClick={handleClick}
+      onClickCapture={handleClickCapture}
+    ></button>
+  )
+}
+```
+
+在老版本事件系统中，点击这个 Demo 的 button 后控制台输出顺序为：
+
+```text
+原生事件监听器
+捕获阶段监听器
+冒泡阶段监听器
+```
+
+而在新版本事件系统中，输出顺序为：
+
+```text
+捕获阶段监听器
+原生事件监听器
+冒泡阶段监听器
+```
+
+新老事件系统的主要区别在于 `事件绑定` 和 `事件触发` 这两个阶段的不同
+
+新版本分别绑定了捕获和冒泡事件，老版本的捕获和冒泡本质上都是绑定在容器的冒泡事件上

@@ -31,7 +31,10 @@ const optimizationSidebarGroupConfig: SidebarGroupConfig = {
 const principleSidebarGroupConfig: SidebarGroupConfig = {
   displayName: '原理篇',
   path: '/guide/principle/',
-  items: [{ text: '事件原理 -- 旧版本', link: 'old-event' }],
+  items: [
+    { text: '事件原理 -- 旧版本', link: 'old-event' },
+    { text: '事件原理 -- 新版本', link: 'new-event' },
+  ],
 }
 
 interface SidebarGroupConfig {
