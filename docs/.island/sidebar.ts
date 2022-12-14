@@ -27,6 +27,13 @@ const optimizationSidebarGroupConfig: SidebarGroupConfig = {
   ],
 }
 
+/** @description 原理篇 */
+const principleSidebarGroupConfig: SidebarGroupConfig = {
+  displayName: '原理篇',
+  path: '/guide/principle/',
+  items: [{ text: '事件原理 -- 旧版本', link: 'old-event' }],
+}
+
 interface SidebarGroupConfig {
   /** @description 分类文档存储路径 */
   path: string
@@ -57,6 +64,7 @@ const sidebar: DefaultTheme.Sidebar = {
   '/guide/': [
     generateSidebarGroup(basicSidebarGroupConfig),
     generateSidebarGroup(optimizationSidebarGroupConfig),
+    generateSidebarGroup(principleSidebarGroupConfig),
   ],
 }
 

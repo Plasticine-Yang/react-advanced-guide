@@ -1,0 +1,15 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+
+  .box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid cyan;
+    width: 50%;
+    height: 100px;
+  }
+}
