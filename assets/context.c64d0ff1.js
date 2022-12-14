@@ -359,7 +359,7 @@ var I=Object.defineProperty;var w=(s,e,c)=>e in s?I(s,e,{enumerable:!0,configura
 `,n(e.span,{className:"line",children:[l(e.span,{style:{color:"#81A1C1"},children:"export"}),l(e.span,{style:{color:"#D8DEE9FF"},children:" "}),l(e.span,{style:{color:"#ECEFF4"},children:"{"}),l(e.span,{style:{color:"#D8DEE9FF"},children:" "}),l(e.span,{style:{color:"#D8DEE9"},children:"NestedContextDemo"}),l(e.span,{style:{color:"#D8DEE9FF"},children:" "}),l(e.span,{style:{color:"#ECEFF4"},children:"}"})]}),`
 `,l(e.span,{className:"line"})]})})]}),`
 `,l(o,{children:l(ee,{})}),`
-`,l(e.p,{children:l(e.img,{src:"https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%B5%8C%E5%A5%97context.gif",alt:"\u5D4C\u5957context"})})]})}function pe(s={}){const{wrapper:e}=s.components||{};return e?l(e,Object.assign({},s,{children:l(m,s)})):m(s)}const Fe="2022/12/14 06:33:26",ye=`import { DemoBlock } from '@island/demo-block'
+`,l(e.p,{children:l(e.img,{src:"https://raw.githubusercontent.com/Plasticine-Yang/plasticine-cloud-image/main/images/react-advanced-guide/%E5%B5%8C%E5%A5%97context.gif",alt:"\u5D4C\u5957context"})})]})}function pe(s={}){const{wrapper:e}=s.components||{};return e?l(e,Object.assign({},s,{children:l(m,s)})):m(s)}const Fe="2022/12/14 07:07:30",ye=`import { DemoBlock } from '@island/demo-block'
 
 import { ContextProviderDemo } from '~/demos/context/demo1.tsx'
 import {

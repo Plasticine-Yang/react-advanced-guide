@@ -450,7 +450,7 @@ var h=Object.defineProperty;var E=(s,l,c)=>l in s?h(s,l,{enumerable:!0,configura
 `,e(l.li,{children:"\u5BF9\u4E8E\u975E PureComponent \u800C\u8A00\uFF0C\u7C7B\u7EC4\u4EF6 setState \u4E0D\u4F1A\u6D45\u6BD4\u8F83\u65B0\u65E7 state\uFF0C\u53EA\u8981\u8C03\u7528\u4E86\u5C31\u66F4\u65B0\uFF1B\u800C\u51FD\u6570\u7EC4\u4EF6\u7684 useState \u4F1A\u9ED8\u8BA4\u6BD4\u8F83\u65B0\u65E7 state \u662F\u5426\u662F\u540C\u4E00\u4E2A\u5BF9\u8C61\u6765\u51B3\u5B9A\u662F\u5426\u8FDB\u884C\u66F4\u65B0"}),`
 `,e(l.li,{children:"setState \u503E\u5411\u4E8E\u5408\u5E76 state \u8FDB\u884C\u66F4\u65B0\uFF1BuseState \u503E\u5411\u4E8E\u62F7\u8D1D\u539F state\uFF0C\u5BF9\u526F\u672C\u8FDB\u884C\u6539\u53D8\u89E6\u53D1\u66F4\u65B0"}),`
 `,e(l.li,{children:"setState \u53EF\u4EE5\u901A\u8FC7\u7B2C\u4E8C\u4E2A\u56DE\u8C03\u53C2\u6570\u6216\u8005 componentDidUpdate \u751F\u547D\u5468\u671F\u76D1\u542C state \u53D8\u5316\uFF1BuseState \u9700\u8981\u914D\u5408 useEffect \u6765\u76D1\u542C state \u53D8\u5316"}),`
-`]})]})}function O(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(d,s)})):d(s)}const w="2022/12/14 06:33:26",T=`import { DemoBlock } from '@island/demo-block'
+`]})]})}function O(s={}){const{wrapper:l}=s.components||{};return l?e(l,Object.assign({},s,{children:e(d,s)})):d(s)}const w="2022/12/14 07:07:30",T=`import { DemoBlock } from '@island/demo-block'
 
 import { SetStateDemo1 } from '~/demos/state/demo1.tsx'
 import { SetStateDemo2 } from '~/demos/state/demo1.tsx'
